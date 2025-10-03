@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String          @id @default(uuid())
+  email            String          @unique
+  passwordHash     String          @map("password_hash")
+  salonName        String?         @map("salon_name")
+  salonAddress     String?         @map("salon_address")
+  subscriptionTier String          @default("free") @map("subscription_tier") // free, pro, enterprise
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  
+  savedSearches    SavedSearch[]
+  apiUsage         ApiUsage[]
+  
+  @@map("users")
+}
+
+model Competitor {
+  id           String    @id @default(uuid())
+  placeId      String?   @unique @map("place_id") // Google Place ID
+  name         String
+  address      String
+  latitude     Decimal?  @db.Decimal(10, 8)
+  longitude    Decimal?  @db.Decimal(11, 8)
+  phone        String?
+  website      String?
+  rating       Decimal?  @db.Decimal(3, 2)
+  reviewCount  Int?      @map("review_count")
+  priceLevel   Int?      @map("price_level") // 1-4 ($-$$$$)
+  hoursPerWeek Int?      @map("hours_per_week")
+  staffBand    String?   @map("staff_band") // "1-3", "4-7", "8+"
+  lastUpdated  DateTime  @default(now()) @map("last_updated")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  
+  services     Service[]
+  amenities    Amenity[]
+  
+  @@map("competitors")
+}
+
+model Service {
+  id              String    @id @default(uuid())
+  competitorId    String    @map("competitor_id")
+  serviceType     String    @map("service_type") // gel, pedicure, acrylic, etc.
+  price           Decimal   @db.Decimal(8, 2)
+  durationMinutes Int?      @map("duration_minutes")
+  source          String    @default("manual") // scraped, manual, estimated
+  verified        Boolean   @default(false)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  competitor      Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  
+  @@map("services")
+}
+
+model Amenity {
+  id           String     @id @default(uuid())
+  competitorId String     @map("competitor_id")
+  amenityName  String     @map("amenity_name")
+  verified     Boolean    @default(false)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  
+  competitor   Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  
+  @@map("amenities")
+}
+
+model SavedSearch {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  searchAddress   String   @map("search_address")
+  radiusMiles     Decimal  @map("radius_miles") @db.Decimal(5, 2)
+  competitorCount Int      @map("competitor_count")
+  results         Json?    // Store search results as JSON
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("saved_searches")
+}
+
+model ApiUsage {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  endpoint     String
+  requestCount Int      @default(1) @map("request_count")
+  date         DateTime @default(now()) @db.Date
+  createdAt    DateTime @default(now()) @map("created_at")
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, endpoint, date])
+  @@map("api_usage")
+}
