@@ -27,24 +27,60 @@ model User {
 }
 
 model Competitor {
-  id           String    @id @default(uuid())
-  placeId      String?   @unique @map("place_id") // Google Place ID
-  name         String
-  address      String
-  latitude     Decimal?  @db.Decimal(10, 8)
-  longitude    Decimal?  @db.Decimal(11, 8)
-  phone        String?
-  website      String?
-  rating       Decimal?  @db.Decimal(3, 2)
-  reviewCount  Int?      @map("review_count")
-  priceLevel   Int?      @map("price_level") // 1-4 ($-$$$$)
-  hoursPerWeek Int?      @map("hours_per_week")
-  staffBand    String?   @map("staff_band") // "1-3", "4-7", "8+"
-  lastUpdated  DateTime  @default(now()) @map("last_updated")
-  createdAt    DateTime  @default(now()) @map("created_at")
+  id                    String    @id @default(uuid())
+  placeId               String?   @unique @map("place_id") // Google Place ID
+  name                  String
+  address               String
+  latitude              Decimal?  @db.Decimal(10, 8)
+  longitude             Decimal?  @db.Decimal(11, 8)
+  phone                 String?
+  email                 String?
+  website               String?
   
-  services     Service[]
-  amenities    Amenity[]
+  // Google data
+  googleRating          Decimal?  @map("google_rating") @db.Decimal(3, 2)
+  googleReviewCount     Int?      @map("google_review_count")
+  
+  // Facebook data
+  facebookRating        Decimal?  @map("facebook_rating") @db.Decimal(3, 2)
+  facebookReviewCount   Int?      @map("facebook_review_count")
+  facebookUrl           String?   @map("facebook_url")
+  
+  // Yelp data
+  yelpRating            Decimal?  @map("yelp_rating") @db.Decimal(3, 2)
+  yelpReviewCount       Int?      @map("yelp_review_count")
+  yelpUrl               String?   @map("yelp_url")
+  
+  // Instagram
+  instagramUrl          String?   @map("instagram_url")
+  
+  // SEO data
+  seoTitle              String?   @map("seo_title")
+  seoDescription        String?   @map("seo_description")
+  h1Tag                 String?   @map("h1_tag")
+  statusCode            Int?      @map("status_code")
+  pageLoadTime          Int?      @map("page_load_time") // in milliseconds
+  
+  // Crawl metadata
+  lastCrawled           DateTime? @map("last_crawled")
+  crawlStatus           String?   @map("crawl_status") // success, partial, failed
+  crawlErrors           String[]  @map("crawl_errors") @default([])
+  screenshotPath        String?   @map("screenshot_path")
+  
+  // Legacy fields (keep for backward compatibility)
+  rating                Decimal?  @db.Decimal(3, 2)
+  reviewCount           Int?      @map("review_count")
+  priceLevel            Int?      @map("price_level") // 1-4 ($-$$$$)
+  hoursPerWeek          Int?      @map("hours_per_week")
+  staffBand             String?   @map("staff_band") // "1-3", "4-7", "8+"
+  
+  lastUpdated           DateTime  @default(now()) @map("last_updated")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  
+  services              Service[]
+  amenities             Amenity[]
+  crawlHistory          CrawlHistory[]
+  openingHours          OpeningHours[]
   
   @@map("competitors")
 }
@@ -52,11 +88,16 @@ model Competitor {
 model Service {
   id              String    @id @default(uuid())
   competitorId    String    @map("competitor_id")
+  name            String    // Service name (e.g., "Gel Manicure")
   serviceType     String    @map("service_type") // gel, pedicure, acrylic, etc.
   price           Decimal   @db.Decimal(8, 2)
+  priceMin        Decimal?  @map("price_min") @db.Decimal(8, 2) // For price ranges
+  priceMax        Decimal?  @map("price_max") @db.Decimal(8, 2) // For price ranges
   durationMinutes Int?      @map("duration_minutes")
+  confidence      Decimal?  @db.Decimal(3, 2) // 0-1 confidence score for scraped data
   source          String    @default("manual") // scraped, manual, estimated
   verified        Boolean   @default(false)
+  lastUpdated     DateTime  @default(now()) @map("last_updated")
   createdAt       DateTime  @default(now()) @map("created_at")
   
   competitor      Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
@@ -102,4 +143,48 @@ model ApiUsage {
   
   @@unique([userId, endpoint, date])
   @@map("api_usage")
+}
+
+model CrawlHistory {
+  id              String     @id @default(uuid())
+  competitorId    String     @map("competitor_id")
+  crawlTimestamp  DateTime   @map("crawl_timestamp")
+  status          String     // success, partial, failed
+  errors          String[]   @default([])
+  screenshotPath  String?    @map("screenshot_path")
+  sourceUrl       String?    @map("source_url")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  
+  competitor      Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  
+  @@map("crawl_history")
+}
+
+model OpeningHours {
+  id              String     @id @default(uuid())
+  competitorId    String     @map("competitor_id")
+  dayOfWeek       String     @map("day_of_week") // monday, tuesday, etc.
+  hours           String     // e.g., "9:00 AM - 7:00 PM"
+  lastUpdated     DateTime   @default(now()) @map("last_updated")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  
+  competitor      Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  
+  @@unique([competitorId, dayOfWeek])
+  @@map("opening_hours")
+}
+
+model CrawlLog {
+  id                    String   @id @default(uuid())
+  crawlType             String   @map("crawl_type") // daily, weekly, hourly
+  startTime             DateTime @map("start_time")
+  endTime               DateTime @map("end_time")
+  status                String   // completed, failed, running
+  competitorsFound      Int      @map("competitors_found")
+  competitorsProcessed  Int      @map("competitors_processed")
+  errorsCount           Int      @map("errors_count")
+  notes                 String?
+  createdAt             DateTime @default(now()) @map("created_at")
+  
+  @@map("crawl_logs")
 }
