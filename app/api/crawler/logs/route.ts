@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo");
 
     // Build where clause
-    const where: any = {};
+    const where: Record<string, unknown> = {};
     
     if (crawlType) {
       where.crawlType = crawlType;

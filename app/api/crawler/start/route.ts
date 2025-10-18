@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+ import { NextRequest, NextResponse } from "next/server";
 import { cronManager } from "@/lib/crawler/cron-manager";
-import { crawlCompetitors } from "@/lib/crawler/competitor-crawler";
 
 /**
  * Start automated competitor crawling
@@ -62,3 +61,4 @@ export async function GET() {
     );
   }
 }
+

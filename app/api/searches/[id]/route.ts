@@ -22,7 +22,7 @@ export async function DELETE(
 
       if (search.userId !== req.user!.id) {
         return errorResponse(
-          "You don't have permission to delete this search",
+          "You do not have permission to delete this search",
           403,
           "FORBIDDEN"
         );

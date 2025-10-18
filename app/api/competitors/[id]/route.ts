@@ -7,7 +7,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(request, async (req: AuthenticatedRequest) => {
+  return withAuth(request, async (_req: AuthenticatedRequest) => {
     try {
       const { id } = params;
 
@@ -39,7 +39,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return withAuth(request, async (req: AuthenticatedRequest) => {
+  return withAuth(request, async (_req: AuthenticatedRequest) => {
     try {
       const { id } = params;
 
