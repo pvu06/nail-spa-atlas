@@ -108,7 +108,7 @@ export async function waitForSelector(
   try {
     await page.waitForSelector(selector, { timeout });
     return true;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
@@ -126,7 +126,7 @@ export async function extractText(
     
     const text = await page.evaluate((el) => el?.textContent?.trim() || "", element);
     return text || null;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }
@@ -148,7 +148,7 @@ export async function extractTexts(
     }
     
     return texts;
-  } catch (error) {
+  } catch (_error) {
     return [];
   }
 }

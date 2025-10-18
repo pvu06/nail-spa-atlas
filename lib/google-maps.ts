@@ -1,4 +1,4 @@
-import { Client, PlaceData, LatLngLiteral } from "@googlemaps/google-maps-services-js";
+import { Client, LatLngLiteral } from "@googlemaps/google-maps-services-js";
 
 const client = new Client({});
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || "";

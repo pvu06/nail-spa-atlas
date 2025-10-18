@@ -113,7 +113,7 @@ export class CronManager {
   private async logCrawlCompletion(
     type: string, 
     startTime: Date, 
-    results: any
+    results: { competitors: unknown[]; processed: number; errors: number }
   ): Promise<void> {
     try {
       await prisma.crawlLog.create({
