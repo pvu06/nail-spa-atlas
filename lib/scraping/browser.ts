@@ -91,7 +91,7 @@ export async function takeScreenshot(
   filename: string
 ): Promise<void> {
   try {
-    await page.screenshot({ path: `screenshots/${filename}`, fullPage: true });
+    await page.screenshot({ path: filename, fullPage: true });
   } catch (error) {
     console.error("Screenshot error:", error);
   }

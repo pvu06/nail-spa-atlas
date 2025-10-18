@@ -400,7 +400,7 @@ export default function CrawlerDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {competitors.slice(0, 20).map((competitor) => (
+                  {competitors.map((competitor) => (
                     <TableRow key={competitor.id}>
                       <TableCell className="font-medium">{competitor.name}</TableCell>
                       <TableCell className="max-w-xs truncate">{competitor.address}</TableCell>

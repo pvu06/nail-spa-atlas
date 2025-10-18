@@ -189,3 +189,4 @@ export class CronManager {
 
 // Export singleton instance
 export const cronManager = CronManager.getInstance();
+

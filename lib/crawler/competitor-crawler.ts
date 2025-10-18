@@ -471,11 +471,11 @@ async function saveCompetitorData(data: CompetitorData): Promise<void> {
             data: {
               competitorId: newCompetitor.id,
               name: service.serviceName,
-              type: service.serviceType,
+              serviceType: service.serviceType,
               price: service.price,
               priceMin: service.priceRange?.min,
               priceMax: service.priceRange?.max,
-              duration: service.duration,
+              durationMinutes: service.duration,
               confidence: service.confidence,
               source: service.source,
               lastUpdated: data.crawlTimestamp
