@@ -23,7 +23,7 @@ Check that **BOTH** keys exist:
 - ✅ `GOOGLE_MAPS_API_KEY` (for server-side)
 - ✅ `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` (for client-side)
 
-Both should have the same value: `AIzaSyBAQH6adDun1sjzh5YtzZdj3cO9StDnaRE`
+Both should have the same value: `your-api-key-here`
 
 ### Step 2: Enable Geocoding API
 

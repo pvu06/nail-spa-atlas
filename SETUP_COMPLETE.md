@@ -59,8 +59,8 @@ To enable competitor search and maps:
 3. Create credentials (API key)
 4. Add to Vercel and local `.env.local`:
    ```env
-   GOOGLE_MAPS_API_KEY="your-key-here"
-   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="your-key-here"
+   GOOGLE_MAPS_API_KEY="your-api-key-here"
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="your-api-key-here"
    ```
 
 ### 2. Test Full Application Flow
