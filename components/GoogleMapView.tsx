@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Loader2 } from "lucide-react";
 
@@ -43,13 +42,18 @@ export function GoogleMapView({
           throw new Error("Google Maps API key not configured");
         }
 
-        const loader = new Loader({
-          apiKey,
-          version: "weekly",
-          libraries: ["places", "marker"],
-        });
-
-        await loader.load();
+        // Load Google Maps script
+        if (!window.google) {
+          const script = document.createElement('script');
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker`;
+          script.async = true;
+          script.defer = true;
+          await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+        }
 
         if (!mapRef.current) return;
 
