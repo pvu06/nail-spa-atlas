@@ -32,9 +32,9 @@ All working on production:
 ### Vercel Environment Variables (Production)
 
 ```env
-DATABASE_URL = postgresql://neondb_owner:npg_...@ep-green-scene-adgtqb39-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
-REDIS_URL = redis://default:iK0ZH7zBPUZkM9orbQRytNmGlSoQm4eY@redis-16667.c91.us-east-1-3.ec2.redns.redis-cloud.com:16667
-JWT_SECRET = (configured)
+DATABASE_URL = postgresql://[REDACTED]
+REDIS_URL = redis://[REDACTED]
+JWT_SECRET = [REDACTED]
 JWT_EXPIRES_IN = 7d
 NODE_ENV = production
 ```

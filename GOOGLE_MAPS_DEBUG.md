@@ -59,7 +59,7 @@ In Google Cloud Console → Credentials:
 Test directly with curl:
 
 ```bash
-curl "https://maps.googleapis.com/maps/api/geocode/json?address=Los+Angeles,CA&key=AIzaSyBAQH6adDun1sjzh5YtzZdj3cO9StDnaRE"
+curl "https://maps.googleapis.com/maps/api/geocode/json?address=Los+Angeles,CA&key=YOUR_API_KEY_HERE"
 ```
 
 **Expected response:**
