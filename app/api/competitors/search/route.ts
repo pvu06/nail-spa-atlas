@@ -59,25 +59,31 @@ export async function POST(request: NextRequest) {
       );
 
       // Calculate distances and add to results
-      const placesWithDistance = places.map((place) => ({
-        id: place.placeId,
-        name: place.name,
-        address: place.address,
-        location: place.location,
-        rating: place.rating || 0,
-        reviewCount: place.userRatingsTotal || 0,
-        priceLevel: place.priceLevel || 2,
-        distanceMiles: calculateDistance(lat, lng, place.location.lat, place.location.lng),
-        // Mock service prices for now (can be scraped later)
-        services: {
-          gel: Math.round(25 + Math.random() * 20),
-          pedicure: Math.round(30 + Math.random() * 20),
-          acrylic: Math.round(45 + Math.random() * 25),
-        },
-        staffBand: place.userRatingsTotal > 200 ? "8+" : place.userRatingsTotal > 100 ? "4-7" : "1-3",
-        hoursPerWeek: 50 + Math.floor(Math.random() * 30),
-        amenities: ["Wi-Fi", "Wheelchair Accessible", "Parking"].slice(0, Math.floor(Math.random() * 3) + 1),
-      }));
+      const placesWithDistance = places.map((place) => {
+        const priceLevel = place.priceLevel || 2;
+        const priceRange = priceLevel === 1 ? "$" : priceLevel === 2 ? "$$" : priceLevel === 3 ? "$$$" : "$$$$";
+        
+        return {
+          id: place.placeId,
+          name: place.name,
+          website: place.website || "#",
+          address: place.address,
+          location: place.location,
+          rating: place.rating || 0,
+          reviewCount: place.userRatingsTotal || 0,
+          priceRange: priceRange,
+          distanceMiles: calculateDistance(lat, lng, place.location.lat, place.location.lng),
+          // Mock service prices for now (can be scraped later)
+          samplePrices: {
+            gel: Math.round(25 + Math.random() * 20),
+            pedicure: Math.round(30 + Math.random() * 20),
+            acrylic: Math.round(45 + Math.random() * 25),
+          },
+          staffBand: place.userRatingsTotal > 200 ? "8+" : place.userRatingsTotal > 100 ? "4-7" : "1-3",
+          hoursPerWeek: 50 + Math.floor(Math.random() * 30),
+          amenities: ["Wi-Fi", "Wheelchair Accessible", "Parking"].slice(0, Math.floor(Math.random() * 3) + 1),
+        };
+      });
 
       // Sort by distance and limit
       placesWithDistance.sort((a, b) => a.distanceMiles - b.distanceMiles);
