@@ -47,8 +47,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Import Google Maps functions
+      // Import Google Maps functions and caching
       const { searchNearbyPlaces, calculateDistance } = await import("@/lib/google-maps");
+      const { getCachedPlaceDetailsBatch } = await import("@/lib/place-cache");
       
       // Search for real competitors using Google Places API
       const radiusMeters = Math.round(radius * 1609.34); // Convert miles to meters
@@ -58,15 +59,20 @@ export async function POST(request: NextRequest) {
         "nail salon"
       );
 
+      // Fetch detailed info (including website) using cache
+      console.log(`📊 Fetching details for ${places.length} places (with caching)...`);
+      const placeIds = places.map(p => p.placeId);
+      const detailedPlaces = await getCachedPlaceDetailsBatch(placeIds);
+
       // Calculate distances and add to results
-      const placesWithDistance = places.map((place) => {
+      const placesWithDistance = detailedPlaces.map((place) => {
         const priceLevel = place.priceLevel || 2;
         const priceRange = priceLevel === 1 ? "$" : priceLevel === 2 ? "$$" : priceLevel === 3 ? "$$$" : "$$$$";
         
         return {
           id: place.placeId,
           name: place.name,
-          website: place.website || "#",
+          website: place.website || "#", // Now has real website from Place Details API
           address: place.address,
           location: place.location,
           rating: place.rating || 0,
@@ -79,15 +85,47 @@ export async function POST(request: NextRequest) {
             pedicure: Math.round(30 + Math.random() * 20),
             acrylic: Math.round(45 + Math.random() * 25),
           },
-          staffBand: place.userRatingsTotal > 200 ? "8+" : place.userRatingsTotal > 100 ? "4-7" : "1-3",
+          staffBand: (place.userRatingsTotal || 0) > 200 ? "8+" : (place.userRatingsTotal || 0) > 100 ? "4-7" : "1-3",
           hoursPerWeek: 50 + Math.floor(Math.random() * 30),
           amenities: ["Wi-Fi", "Wheelchair Accessible", "Parking"].slice(0, Math.floor(Math.random() * 3) + 1),
         };
       });
 
-      // Sort by distance and limit
-      placesWithDistance.sort((a, b) => a.distanceMiles - b.distanceMiles);
-      const competitors = placesWithDistance.slice(0, competitorCount);
+      // Smart sorting algorithm: Balance quality, popularity, and proximity
+      // Score formula: (rating/5) × log(reviews + 1) / distance
+      // Higher score = better competitor (popular, well-rated, and reasonably close)
+      const competitorsWithScore = placesWithDistance.map(comp => {
+        const rating = comp.rating || 3.0;
+        const reviews = comp.reviewCount || 1;
+        const distance = comp.distanceMiles || 0.1;
+        
+        // Calculate quality score (0-1)
+        const ratingScore = rating / 5;
+        
+        // Calculate popularity score using logarithm (diminishing returns for reviews)
+        const popularityScore = Math.log(reviews + 1);
+        
+        // Calculate proximity score (inverse of distance)
+        const proximityScore = 1 / Math.max(distance, 0.1);
+        
+        // Combined score (weighted)
+        const score = (ratingScore * 10) * (popularityScore * 2) * (proximityScore * 0.5);
+        
+        return {
+          ...comp,
+          competitiveScore: Math.round(score * 10) / 10
+        };
+      });
+
+      // Sort by competitive score (highest first), then by distance as tiebreaker
+      competitorsWithScore.sort((a, b) => {
+        if (Math.abs(a.competitiveScore - b.competitiveScore) > 1) {
+          return b.competitiveScore - a.competitiveScore; // Higher score first
+        }
+        return a.distanceMiles - b.distanceMiles; // Same score? Closer first
+      });
+      
+      const competitors = competitorsWithScore.slice(0, competitorCount);
 
       // Save search to database (only if authenticated)
       if (user) {

@@ -2,11 +2,28 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { getPriceChartData } from "@/lib/mockData";
 import { motion } from "framer-motion";
 
-export function PriceBarChart() {
-  const data = getPriceChartData();
+interface Competitor {
+  name: string;
+  samplePrices: {
+    gel: number;
+    pedicure: number;
+    acrylic: number;
+  };
+}
+
+interface PriceBarChartProps {
+  competitors: Competitor[];
+}
+
+export function PriceBarChart({ competitors }: PriceBarChartProps) {
+  const data = competitors.map(comp => ({
+    name: comp.name.split(' ').slice(0, 2).join(' '), // Shortened name
+    gel: comp.samplePrices.gel,
+    pedicure: comp.samplePrices.pedicure,
+    acrylic: comp.samplePrices.acrylic
+  }));
 
   return (
     <motion.div
@@ -14,10 +31,10 @@ export function PriceBarChart() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.3 }}
     >
-      <Card className="w-full rounded-2xl shadow-lg">
+      <Card className="w-full rounded-2xl shadow-lg border-2">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Service Pricing Comparison</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl font-bold text-gray-900">Service Pricing Comparison</CardTitle>
+          <CardDescription className="text-gray-600">
             Compare prices for key services across all competitors
           </CardDescription>
         </CardHeader>
@@ -32,9 +49,9 @@ export function PriceBarChart() {
                 contentStyle={{ borderRadius: '8px' }}
               />
               <Legend />
-              <Bar dataKey="gel" fill="#8b5cf6" name="Gel Manicure" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="pedicure" fill="#3b82f6" name="Pedicure" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="acrylic" fill="#10b981" name="Acrylic" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="gel" fill="#E6863B" name="Gel Manicure" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="pedicure" fill="#2CA02C" name="Pedicure" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="acrylic" fill="#9467BD" name="Acrylic" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

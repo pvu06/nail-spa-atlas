@@ -116,3 +116,6 @@ After fixing:
 - ✅ Database queries work
 - ✅ Crawler logs API returns data (or empty array if no logs)
 
+
+
+

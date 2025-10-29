@@ -4,6 +4,9 @@ import { useState } from "react";
 import { SearchForm } from "@/components/SearchForm";
 import { CompetitorTable } from "@/components/CompetitorTable";
 import { PriceBarChart } from "@/components/PriceBarChart";
+import { PriceTrendLineChart } from "@/components/PriceTrendLineChart";
+import { MarketSharePieChart } from "@/components/MarketSharePieChart";
+import { AIInsights } from "@/components/AIInsights";
 import { MapView } from "@/components/MapView";
 import { ExportButtons } from "@/components/ExportButtons";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
@@ -165,8 +168,20 @@ export default function AnalyzePage() {
             {/* Competitor Table */}
             <CompetitorTable competitors={competitors} />
 
-            {/* Price Chart */}
-            <PriceBarChart />
+            {/* Charts Section */}
+            <div className="space-y-6">
+              {/* Bar Chart - Full Width */}
+              <PriceBarChart competitors={competitors} />
+              
+              {/* Line Graph & Pie Chart - Side by Side */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <PriceTrendLineChart competitors={competitors} />
+                <MarketSharePieChart competitors={competitors} />
+              </div>
+            </div>
+
+            {/* AI Insights */}
+            <AIInsights competitors={competitors} />
 
             {/* Map View */}
             {searchLocation && (

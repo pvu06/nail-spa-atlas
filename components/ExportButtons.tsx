@@ -3,25 +3,34 @@
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 import { motion } from "framer-motion";
+import { useState } from "react";
 
 interface ExportButtonsProps {
   onExport?: (format: "csv" | "pdf") => void;
 }
 
 export function ExportButtons({ onExport }: ExportButtonsProps) {
-  const handleExportCSV = () => {
+  const [isExporting, setIsExporting] = useState<string | null>(null);
+
+  const handleExportCSV = async () => {
     if (onExport) {
-      onExport("csv");
-    } else {
-      alert("CSV export functionality - coming soon!");
+      setIsExporting("csv");
+      try {
+        await onExport("csv");
+      } finally {
+        setIsExporting(null);
+      }
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (onExport) {
-      onExport("pdf");
-    } else {
-      alert("PDF export functionality - coming soon!");
+      setIsExporting("pdf");
+      try {
+        await onExport("pdf");
+      } finally {
+        setIsExporting(null);
+      }
     }
   };
 
@@ -32,13 +41,25 @@ export function ExportButtons({ onExport }: ExportButtonsProps) {
       transition={{ duration: 0.5, delay: 0.4 }}
       className="flex flex-wrap gap-4 justify-center md:justify-start"
     >
-      <Button onClick={handleExportCSV} variant="outline" size="lg">
+      <Button 
+        onClick={handleExportCSV} 
+        variant="outline" 
+        size="lg"
+        disabled={isExporting !== null}
+        className="transition-all hover:bg-green-50 hover:border-[#2CA02C] hover:text-[#2CA02C]"
+      >
         <Download className="mr-2 h-4 w-4" />
-        Export CSV
+        {isExporting === "csv" ? "Exporting..." : "Export CSV"}
       </Button>
-      <Button onClick={handleExportPDF} variant="outline" size="lg">
+      <Button 
+        onClick={handleExportPDF} 
+        variant="outline" 
+        size="lg"
+        disabled={isExporting !== null}
+        className="transition-all hover:bg-orange-50 hover:border-[#E6863B] hover:text-[#E6863B]"
+      >
         <FileText className="mr-2 h-4 w-4" />
-        Export PDF
+        {isExporting === "pdf" ? "Exporting..." : "Export PDF"}
       </Button>
     </motion.div>
   );
