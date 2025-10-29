@@ -38,9 +38,50 @@ export async function POST(request: NextRequest) {
 
       const { address, radius, competitorCount, lat, lng } = result.data;
 
-      // TODO: Replace with real Google Places API call
-      // For now, return mock data
-      const competitors = mockCompetitors.slice(0, competitorCount);
+      // If lat/lng not provided, we need to geocode first
+      if (!lat || !lng) {
+        return errorResponse(
+          "Location coordinates required. Please geocode address first.",
+          400,
+          "MISSING_COORDINATES"
+        );
+      }
+
+      // Import Google Maps functions
+      const { searchNearbyPlaces, calculateDistance } = await import("@/lib/google-maps");
+      
+      // Search for real competitors using Google Places API
+      const radiusMeters = Math.round(radius * 1609.34); // Convert miles to meters
+      const places = await searchNearbyPlaces(
+        { lat, lng },
+        radiusMeters,
+        "nail salon"
+      );
+
+      // Calculate distances and add to results
+      const placesWithDistance = places.map((place) => ({
+        id: place.placeId,
+        name: place.name,
+        address: place.address,
+        location: place.location,
+        rating: place.rating || 0,
+        reviewCount: place.userRatingsTotal || 0,
+        priceLevel: place.priceLevel || 2,
+        distanceMiles: calculateDistance(lat, lng, place.location.lat, place.location.lng),
+        // Mock service prices for now (can be scraped later)
+        services: {
+          gel: Math.round(25 + Math.random() * 20),
+          pedicure: Math.round(30 + Math.random() * 20),
+          acrylic: Math.round(45 + Math.random() * 25),
+        },
+        staffBand: place.userRatingsTotal > 200 ? "8+" : place.userRatingsTotal > 100 ? "4-7" : "1-3",
+        hoursPerWeek: 50 + Math.floor(Math.random() * 30),
+        amenities: ["Wi-Fi", "Wheelchair Accessible", "Parking"].slice(0, Math.floor(Math.random() * 3) + 1),
+      }));
+
+      // Sort by distance and limit
+      placesWithDistance.sort((a, b) => a.distanceMiles - b.distanceMiles);
+      const competitors = placesWithDistance.slice(0, competitorCount);
 
       // Save search to database (only if authenticated)
       if (user) {
@@ -91,6 +132,7 @@ export async function POST(request: NextRequest) {
 
       return successResponse({
         competitors,
+        searchLocation: { lat, lng },
         meta: {
           searchAddress: address,
           radius,
