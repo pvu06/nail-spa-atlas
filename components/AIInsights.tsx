@@ -631,8 +631,8 @@ export function AIInsights({ competitors }: AIInsightsProps) {
                       <div className="flex-1">
                         <p className="font-semibold text-sm text-gray-900 mb-1">Location Advantage Campaign</p>
                         <p className="text-xs text-gray-700 mb-2">
-                          ⚡ OPPORTUNITY: No immediate competitors (< 1 mi)! Market heavily as "closest nail salon" to local residents.
-                          Create "neighborhood nail salon" branding. Door-hanger campaign in apartment complexes.
+                          ⚡ OPPORTUNITY: No immediate competitors (&lt; 1 mi)! Market heavily as &quot;closest nail salon&quot; to local residents.
+                          Create &quot;neighborhood nail salon&quot; branding. Door-hanger campaign in apartment complexes.
                         </p>
                         <p className="text-xs text-gray-600 italic">💡 Why: Geographic advantage won't last - capitalize NOW</p>
                       </div>
