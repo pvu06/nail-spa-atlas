@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { successResponse, errorResponse } from "@/lib/api-response";
 import { geocodeAddress } from "@/lib/google-maps";

@@ -1,6 +1,21 @@
 import { Redis } from "ioredis";
 
-const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+let redis: Redis | null = null;
+
+try {
+  if (process.env.REDIS_URL) {
+    redis = new Redis(process.env.REDIS_URL);
+    redis.on('error', (err) => {
+      console.warn('Redis connection error (rate limiting disabled):', err.message);
+      redis = null;
+    });
+  } else {
+    console.warn('REDIS_URL not set - rate limiting disabled');
+  }
+} catch (error) {
+  console.warn('Redis initialization failed - rate limiting disabled:', error);
+  redis = null;
+}
 
 const RATE_LIMITS = {
   free: parseInt(process.env.RATE_LIMIT_FREE || "100"),
@@ -21,6 +36,16 @@ export async function checkRateLimit(
 ): Promise<RateLimitResult> {
   const limit = RATE_LIMITS[tier];
   const key = `ratelimit:${userId}:${Date.now().toString().slice(0, -5)}`; // Per hour
+  
+  // If Redis is not available, fail open (allow request)
+  if (!redis) {
+    return {
+      success: true,
+      limit,
+      remaining: limit,
+      reset: Date.now() + 3600000,
+    };
+  }
   
   try {
     const current = await redis.incr(key);
@@ -51,11 +76,17 @@ export async function checkRateLimit(
 }
 
 export async function resetRateLimit(userId: string): Promise<void> {
-  const pattern = `ratelimit:${userId}:*`;
-  const keys = await redis.keys(pattern);
+  if (!redis) return;
   
-  if (keys.length > 0) {
-    await redis.del(...keys);
+  try {
+    const pattern = `ratelimit:${userId}:*`;
+    const keys = await redis.keys(pattern);
+    
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
+  } catch (error) {
+    console.error("Rate limit reset error:", error);
   }
 }
 

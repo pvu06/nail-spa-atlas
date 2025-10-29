@@ -1,7 +1,20 @@
 import { Redis } from "ioredis";
 import { GeocodingResult, PlaceSearchResult } from "./google-maps";
 
-const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+let redis: Redis | null = null;
+
+try {
+  if (process.env.REDIS_URL) {
+    redis = new Redis(process.env.REDIS_URL);
+    redis.on('error', (err) => {
+      console.warn('Redis connection error:', err.message);
+      redis = null;
+    });
+  }
+} catch (error) {
+  console.warn('Redis initialization failed:', error);
+  redis = null;
+}
 
 const CACHE_TTL = {
   GEOCODING: 60 * 60 * 24 * 7, // 7 days
@@ -13,6 +26,8 @@ const CACHE_TTL = {
  * Cache geocoding results
  */
 export async function getCachedGeocoding(address: string): Promise<GeocodingResult | null> {
+  if (!redis) return null;
+  
   try {
     const key = `geocode:${address.toLowerCase().trim()}`;
     const cached = await redis.get(key);
@@ -27,6 +42,8 @@ export async function setCachedGeocoding(
   address: string,
   result: GeocodingResult
 ): Promise<void> {
+  if (!redis) return;
+  
   try {
     const key = `geocode:${address.toLowerCase().trim()}`;
     await redis.setex(key, CACHE_TTL.GEOCODING, JSON.stringify(result));
@@ -43,6 +60,8 @@ export async function getCachedPlacesSearch(
   lng: number,
   radius: number
 ): Promise<PlaceSearchResult[] | null> {
+  if (!redis) return null;
+  
   try {
     const key = `places:${lat.toFixed(4)}:${lng.toFixed(4)}:${radius}`;
     const cached = await redis.get(key);
@@ -59,6 +78,8 @@ export async function setCachedPlacesSearch(
   radius: number,
   results: PlaceSearchResult[]
 ): Promise<void> {
+  if (!redis) return;
+  
   try {
     const key = `places:${lat.toFixed(4)}:${lng.toFixed(4)}:${radius}`;
     await redis.setex(key, CACHE_TTL.PLACES_SEARCH, JSON.stringify(results));
@@ -71,6 +92,8 @@ export async function setCachedPlacesSearch(
  * Cache place details
  */
 export async function getCachedPlaceDetails(placeId: string): Promise<PlaceSearchResult | null> {
+  if (!redis) return null;
+  
   try {
     const key = `place_details:${placeId}`;
     const cached = await redis.get(key);
@@ -85,6 +108,8 @@ export async function setCachedPlaceDetails(
   placeId: string,
   details: PlaceSearchResult
 ): Promise<void> {
+  if (!redis) return;
+  
   try {
     const key = `place_details:${placeId}`;
     await redis.setex(key, CACHE_TTL.PLACE_DETAILS, JSON.stringify(details));
