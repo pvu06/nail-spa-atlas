@@ -214,3 +214,76 @@ model CachedPlace {
   @@index([placeId])
   @@map("cached_places")
 }
+
+// Historical Tracking Models
+model SearchHistory {
+  id                String              @id @default(uuid())
+  searchAddress     String              @map("search_address")
+  latitude          Decimal             @db.Decimal(10, 8)
+  longitude         Decimal             @db.Decimal(11, 8)
+  radiusMiles       Decimal             @map("radius_miles") @db.Decimal(5, 2)
+  competitorCount   Int                 @map("competitor_count")
+  searchDate        DateTime            @default(now()) @map("search_date")
+  
+  // Aggregated metrics
+  avgRating         Decimal?            @map("avg_rating") @db.Decimal(3, 2)
+  avgGelPrice       Decimal?            @map("avg_gel_price") @db.Decimal(8, 2)
+  avgPedicurePrice  Decimal?            @map("avg_pedicure_price") @db.Decimal(8, 2)
+  avgAcrylicPrice   Decimal?            @map("avg_acrylic_price") @db.Decimal(8, 2)
+  
+  snapshots         CompetitorSnapshot[]
+  
+  @@index([searchAddress, searchDate])
+  @@index([latitude, longitude, searchDate])
+  @@map("search_history")
+}
+
+model CompetitorSnapshot {
+  id                String        @id @default(uuid())
+  searchHistoryId   String        @map("search_history_id")
+  placeId           String        @map("place_id")
+  name              String
+  address           String
+  rating            Decimal?      @db.Decimal(3, 2)
+  reviewCount       Int?          @map("review_count")
+  priceRange        String?       @map("price_range")
+  gelPrice          Decimal?      @map("gel_price") @db.Decimal(8, 2)
+  pedicurePrice     Decimal?      @map("pedicure_price") @db.Decimal(8, 2)
+  acrylicPrice      Decimal?      @map("acrylic_price") @db.Decimal(8, 2)
+  distanceMiles     Decimal?      @map("distance_miles") @db.Decimal(10, 2)
+  competitiveScore  Int?          @map("competitive_score")
+  snapshotDate      DateTime      @default(now()) @map("snapshot_date")
+  
+  searchHistory     SearchHistory @relation(fields: [searchHistoryId], references: [id], onDelete: Cascade)
+  
+  @@index([placeId, snapshotDate])
+  @@index([searchHistoryId])
+  @@map("competitor_snapshots")
+}
+
+// Reviews & Sentiment Analysis
+model Review {
+  id              String    @id @default(uuid())
+  placeId         String    @map("place_id")
+  competitorName  String    @map("competitor_name")
+  authorName      String    @map("author_name")
+  rating          Int       // 1-5 stars
+  text            String?   @db.Text
+  publishedAt     DateTime? @map("published_at")
+  
+  // Sentiment Analysis
+  sentiment       String?   // positive, negative, neutral
+  sentimentScore  Decimal?  @map("sentiment_score") @db.Decimal(3, 2) // -1 to 1
+  keywords        String[]  @default([])
+  topics          String[]  @default([]) // service, cleanliness, price, staff, etc.
+  
+  // Metadata
+  source          String    @default("google") // google, yelp, facebook
+  analyzedAt      DateTime? @map("analyzed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  @@index([placeId])
+  @@index([sentiment])
+  @@index([publishedAt])
+  @@map("reviews")
+}

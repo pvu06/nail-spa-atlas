@@ -469,11 +469,257 @@ export function AIInsights({ competitors }: AIInsightsProps) {
             </div>
           </div>
 
+          {/* ===== ULTRA-DETAILED 30-DAY ACTION PLAN ===== */}
+          <div className="border-3 border-gray-800 rounded-xl p-6 bg-gradient-to-r from-gray-50 to-white">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-900">
+              <Target className="h-6 w-6 text-gray-800" />
+              30-Day Competitive Action Plan
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Follow these step-by-step actions to gain competitive advantage in your market
+            </p>
+
+            {/* Week 1: Market Positioning */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge className="bg-gray-900 text-white px-3 py-1">Week 1</Badge>
+                <h4 className="font-bold text-base text-gray-900">Market Positioning & Setup</h4>
+              </div>
+              <div className="space-y-3 pl-4 border-l-4 border-gray-300">
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex gap-3">
+                    <span className="text-2xl">📊</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-900 mb-1">Pricing Strategy Implementation</p>
+                      <p className="text-xs text-gray-700 mb-2">
+                        Set your gel manicure at <span className="font-bold text-green-600">${Math.round(pricing.avgGel * 0.95)}</span> (5% below market avg ${pricing.avgGel}),
+                        pedicure at <span className="font-bold text-green-600">${Math.round(pricing.avgPedicure * 0.92)}</span> (8% below ${pricing.avgPedicure}), and
+                        acrylic at <span className="font-bold text-green-600">${Math.round(pricing.avgAcrylic * 0.90)}</span> (10% below ${pricing.avgAcrylic}).
+                      </p>
+                      <p className="text-xs text-gray-600 italic">💡 Why: Aggressive initial pricing captures market share from {weakCompetitors} lower-rated competitors</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex gap-3">
+                    <span className="text-2xl">⭐</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-900 mb-1">Review Generation Campaign</p>
+                      <p className="text-xs text-gray-700 mb-2">
+                        Goal: {Math.round(topCompetitor.reviewCount / 10)} reviews in 30 days. 
+                        Create QR code cards, offer 10% discount for honest reviews, train staff to ask satisfied customers.
+                        Send follow-up texts 24 hours after service.
+                      </p>
+                      <p className="text-xs text-gray-600 italic">💡 Why: {topCompetitor.name} has {topCompetitor.reviewCount} reviews - you need social proof fast</p>
+                    </div>
+                  </div>
+                </div>
+
+                {serviceGaps.missing.length > 0 && (
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex gap-3">
+                      <span className="text-2xl">✨</span>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm text-gray-900 mb-1">Essential Amenities Setup</p>
+                        <p className="text-xs text-gray-700 mb-2">
+                          Install: {serviceGaps.missing.join(", ")}. 
+                          Budget: ~$500-1,500. These are table stakes - {Math.round((competitors.length - serviceGaps.missing.length) / competitors.length * 100)}% of competitors already offer them.
+                        </p>
+                        <p className="text-xs text-gray-600 italic">💡 Why: Missing basics hurts your competitive position immediately</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Week 2: Competitive Differentiation */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge className="bg-gray-900 text-white px-3 py-1">Week 2</Badge>
+                <h4 className="font-bold text-base text-gray-900">Differentiation & Service Excellence</h4>
+              </div>
+              <div className="space-y-3 pl-4 border-l-4 border-gray-300">
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex gap-3">
+                    <span className="text-2xl">🎯</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-900 mb-1">Study {topCompetitor.name} (Your Main Threat)</p>
+                      <p className="text-xs text-gray-700 mb-2">
+                        Visit as a customer. Document: service speed, techniques, product brands, customer service, booking process, upsells.
+                        Read their last 50 reviews for common complaints. Create a "beat them" checklist.
+                      </p>
+                      <p className="text-xs text-gray-600 italic">💡 Why: They're {topCompetitor.distanceMiles} miles away with {topCompetitor.rating}⭐ - you need to be better</p>
+                    </div>
+                  </div>
+                </div>
+
+                {serviceGaps.rare.length > 0 && (
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex gap-3">
+                      <span className="text-2xl">💎</span>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm text-gray-900 mb-1">Luxury Differentiation</p>
+                        <p className="text-xs text-gray-700 mb-2">
+                          Add {serviceGaps.rare[0] || "massage chairs"} - only {Math.round(competitors.filter(c => c.amenities.includes(serviceGaps.rare[0] || "none")).length / competitors.length * 100)}% of competitors have this.
+                          This gives you a unique selling point. Budget: $2,000-5,000.
+                        </p>
+                        <p className="text-xs text-gray-600 italic">💡 Why: Stand out in a crowded market with premium experiences</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex gap-3">
+                    <span className="text-2xl">👥</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-900 mb-1">Staff Training Intensive</p>
+                      <p className="text-xs text-gray-700 mb-2">
+                        Train on: asking for reviews tactfully, upselling (target +$15/customer), 
+                        handling complaints professionally, speed without sacrificing quality. Role-play customer scenarios.
+                      </p>
+                      <p className="text-xs text-gray-600 italic">💡 Why: Service quality determines if you hit 4.5⭐ or stay below 4.0⭐</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Week 3: Marketing & Visibility */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge className="bg-gray-900 text-white px-3 py-1">Week 3</Badge>
+                <h4 className="font-bold text-base text-gray-900">Marketing Blitz</h4>
+              </div>
+              <div className="space-y-3 pl-4 border-l-4 border-gray-300">
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex gap-3">
+                    <span className="text-2xl">📱</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-900 mb-1">Social Media Launch</p>
+                      <p className="text-xs text-gray-700 mb-2">
+                        Post daily: Before/after photos, special offers, behind-the-scenes. 
+                        Run Facebook/Instagram ads targeting {geoGaps ? `${geoGaps.nearbyCount === 0 ? "immediate area" : "1-3 mile radius"}` : "local area"} 
+                        with "$5 off first visit" ($200 budget). Instagram Reels perform best.
+                      </p>
+                      <p className="text-xs text-gray-600 italic">💡 Why: Your competitors are online - you need to be visible where customers search</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex gap-3">
+                    <span className="text-2xl">🎁</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-900 mb-1">Grand Opening Promotion</p>
+                      <p className="text-xs text-gray-700 mb-2">
+                        Week-long offer: 30% off all services. Goal: 100+ customers through the door.
+                        Print 500 flyers, distribute in {geoGaps ? `${geoGaps.nearbyCount === 0 ? "< 1 mile" : "1-2 mile"}` : "nearby"} radius.
+                        Partner with local businesses for cross-promotion.
+                      </p>
+                      <p className="text-xs text-gray-600 italic">💡 Why: Fast customer acquisition = fast review generation = faster credibility</p>
+                    </div>
+                  </div>
+                </div>
+
+                {geoGaps && geoGaps.nearbyCount === 0 && (
+                  <div className="bg-white p-4 rounded-lg border border-yellow-400 shadow-sm">
+                    <div className="flex gap-3">
+                      <span className="text-2xl">📍</span>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm text-gray-900 mb-1">Location Advantage Campaign</p>
+                        <p className="text-xs text-gray-700 mb-2">
+                          ⚡ OPPORTUNITY: No immediate competitors (< 1 mi)! Market heavily as "closest nail salon" to local residents.
+                          Create "neighborhood nail salon" branding. Door-hanger campaign in apartment complexes.
+                        </p>
+                        <p className="text-xs text-gray-600 italic">💡 Why: Geographic advantage won't last - capitalize NOW</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Week 4: Optimization & Growth */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge className="bg-gray-900 text-white px-3 py-1">Week 4</Badge>
+                <h4 className="font-bold text-base text-gray-900">Optimize & Scale</h4>
+              </div>
+              <div className="space-y-3 pl-4 border-l-4 border-gray-300">
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex gap-3">
+                    <span className="text-2xl">📈</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-900 mb-1">Performance Analysis</p>
+                      <p className="text-xs text-gray-700 mb-2">
+                        Metrics to track: Reviews (target: {Math.round(topCompetitor.reviewCount / 10)}), 
+                        avg ticket (target: +$10 from upsells), customer retention (target: 40% return).
+                        Adjust pricing if needed - increase by 5% if booked solid.
+                      </p>
+                      <p className="text-xs text-gray-600 italic">💡 Why: Data-driven decisions beat guesswork</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex gap-3">
+                    <span className="text-2xl">🎯</span>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-900 mb-1">Target Weak Competitors</p>
+                      <p className="text-xs text-gray-700 mb-2">
+                        {weakCompetitors} competitor{weakCompetitors > 1 ? "s" : ""} rated below 4.0⭐. 
+                        Create comparison ads: "Tired of poor service? Try us - satisfaction guaranteed."
+                        Steal their dissatisfied customers with quality and professionalism.
+                      </p>
+                      <p className="text-xs text-gray-600 italic">💡 Why: Low-hanging fruit - these customers are already looking to switch</p>
+                    </div>
+                  </div>
+                </div>
+
+                {priceQuality.overpriced.length > 0 && (
+                  <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex gap-3">
+                      <span className="text-2xl">💰</span>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm text-gray-900 mb-1">Value Positioning Attack</p>
+                        <p className="text-xs text-gray-700 mb-2">
+                          {priceQuality.overpriced.length} competitor{priceQuality.overpriced.length > 1 ? "s" : ""} 
+                          overpriced with low ratings. Run campaign: "Same quality, better price - see our reviews!"
+                          This is your fastest growth opportunity.
+                        </p>
+                        <p className="text-xs text-gray-600 italic">💡 Why: Overpriced + low quality = vulnerable to value competition</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Success Metrics */}
+            <div className="bg-gray-900 text-white p-4 rounded-lg">
+              <h4 className="font-bold text-sm mb-2">✅ 30-Day Success Metrics</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <span className="font-semibold">Reviews:</span> {Math.round(topCompetitor.reviewCount / 10)}+ reviews
+                </div>
+                <div>
+                  <span className="font-semibold">Rating:</span> 4.5⭐ or higher
+                </div>
+                <div>
+                  <span className="font-semibold">Customers:</span> 150+ served
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Competitive Advantage */}
           <div className="text-center pt-4 border-t-2 border-gray-300">
             <p className="text-sm text-gray-700">
-              💡 <span className="font-semibold text-gray-900">Pro Tip:</span> Monitor {topCompetitor.name} closely and aim to exceed their service quality 
-              while maintaining competitive pricing. Focus on building reviews quickly in your first 6 months.
+              💡 <span className="font-semibold text-gray-900">Pro Tip:</span> Print this action plan and check off items daily. 
+              Market conditions change fast - re-run this analysis every 2 weeks to stay ahead of {topCompetitor.name} and emerging threats.
             </p>
           </div>
         </CardContent>
