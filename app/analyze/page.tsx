@@ -21,6 +21,7 @@ export default function AnalyzePage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [competitors, setCompetitors] = useState<any[]>([]);
   const [searchData, setSearchData] = useState<SearchFormData | null>(null);
+  const [searchLocation, setSearchLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleAnalyze = async (data: SearchFormData) => {
@@ -54,7 +55,10 @@ export default function AnalyzePage() {
 
       // Transform the data to match expected format
       const competitorsData = competitorResult.data.competitors || [];
+      const location = competitorResult.data.searchLocation || { lat, lng };
+      
       setCompetitors(competitorsData);
+      setSearchLocation(location);
       setHasSearched(true);
 
       toast.success(`Found ${competitorsData.length} competitors!`);
@@ -165,7 +169,12 @@ export default function AnalyzePage() {
             <PriceBarChart />
 
             {/* Map View */}
-            <MapView />
+            {searchLocation && (
+              <MapView 
+                competitors={competitors} 
+                center={searchLocation}
+              />
+            )}
           </motion.div>
         )}
 
