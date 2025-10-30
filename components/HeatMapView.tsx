@@ -61,9 +61,12 @@ export function HeatMapView({ competitors, searchLocation }: HeatMapViewProps) {
           return;
         }
 
-        // Import core Maps and visualization libraries explicitly
-        await google.maps.importLibrary("maps");
-        await google.maps.importLibrary("visualization");
+        // Import libraries if new API is available
+        if (typeof google.maps.importLibrary === 'function') {
+          await google.maps.importLibrary("maps");
+          await google.maps.importLibrary("visualization");
+        }
+        // If importLibrary doesn't exist, libraries are already loaded via script URL
 
         // Create map
         const googleMap = new google.maps.Map(mapRef.current, {
@@ -93,6 +96,10 @@ export function HeatMapView({ competitors, searchLocation }: HeatMapViewProps) {
 
         // Add search location marker using new AdvancedMarkerElement API
         try {
+          // Check if new marker API is available
+          if (typeof google.maps.importLibrary !== 'function') {
+            throw new Error("importLibrary not available, using fallback");
+          }
           const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
           const pin = new PinElement({
             background: "#3B82F6",

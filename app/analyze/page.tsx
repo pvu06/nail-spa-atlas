@@ -68,7 +68,7 @@ export default function AnalyzePage() {
 
       // Save search history
       try {
-        await fetch("/api/history/save", {
+        const saveResponse = await fetch("/api/history/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -79,8 +79,15 @@ export default function AnalyzePage() {
             competitors: competitorsData,
           }),
         });
+        
+        if (!saveResponse.ok) {
+          const errorData = await saveResponse.json();
+          console.error("Failed to save history:", errorData);
+        } else {
+          console.log("Search history saved successfully");
+        }
       } catch (historyErr) {
-        console.warn("Failed to save search history:", historyErr);
+        console.error("Failed to save search history:", historyErr);
       }
 
       toast.success(`Found ${competitorsData.length} competitors!`);

@@ -49,8 +49,12 @@ export function GoogleMapView({
 
         if (!mapRef.current) return;
 
-        // Import the core Maps library explicitly
-        await google.maps.importLibrary("maps");
+        // Check if we need to use importLibrary (new API) or if everything is already loaded (old API)
+        if (typeof google.maps.importLibrary === 'function') {
+          // New API - import libraries explicitly
+          await google.maps.importLibrary("maps");
+        }
+        // If importLibrary doesn't exist, the libraries are already loaded via the script URL
 
         // Create map
         const map = new google.maps.Map(mapRef.current, {
@@ -77,6 +81,10 @@ export function GoogleMapView({
         // Add your location marker (green) using new AdvancedMarkerElement API
         if (yourLocation) {
           try {
+            // Check if new marker API is available
+            if (typeof google.maps.importLibrary !== 'function') {
+              throw new Error("importLibrary not available, using fallback");
+            }
             const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
             const pin = new PinElement({
               background: "#10b981",
@@ -143,6 +151,10 @@ export function GoogleMapView({
         // Add competitor markers (red) using new AdvancedMarkerElement API
         const addCompetitorMarkers = async () => {
           try {
+            // Check if new marker API is available
+            if (typeof google.maps.importLibrary !== 'function') {
+              throw new Error("importLibrary not available, using fallback");
+            }
             const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
             
             competitors.forEach(async (competitor, index) => {
