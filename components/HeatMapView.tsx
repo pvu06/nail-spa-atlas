@@ -32,6 +32,13 @@ export function HeatMapView({ competitors, searchLocation }: HeatMapViewProps) {
       setError(null);
 
       try {
+        // Validate input data
+        if (!Array.isArray(competitors) || competitors.length === 0) {
+          setError("No competitor data available");
+          setLoading(false);
+          return;
+        }
+
         const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
         if (!apiKey) {
           setError("Google Maps API key not configured");
@@ -95,21 +102,42 @@ export function HeatMapView({ competitors, searchLocation }: HeatMapViewProps) {
           title: "Search Location",
         });
 
-        // Prepare heat map data
-        const heatmapData = competitors.map((competitor) => {
-          const location = new google.maps.LatLng(
-            competitor.latitude,
-            competitor.longitude
-          );
-          
-          // Weight by rating and review count for competitive intensity
-          const weight = (competitor.rating / 5) * Math.log(competitor.reviewCount + 1);
-          
-          return {
-            location,
-            weight: Math.max(1, weight),
-          };
-        });
+        // Prepare heat map data with validation
+        const heatmapData = Array.isArray(competitors) 
+          ? competitors
+              .filter((competitor) => {
+                // Validate coordinates
+                const hasValidCoords = 
+                  typeof competitor.latitude === 'number' && 
+                  typeof competitor.longitude === 'number' &&
+                  !isNaN(competitor.latitude) &&
+                  !isNaN(competitor.longitude);
+                return hasValidCoords;
+              })
+              .map((competitor) => {
+                const location = new google.maps.LatLng(
+                  competitor.latitude,
+                  competitor.longitude
+                );
+                
+                // Weight by rating and review count for competitive intensity
+                const rating = Number(competitor.rating) || 0;
+                const reviewCount = Number(competitor.reviewCount) || 0;
+                const weight = (rating / 5) * Math.log(reviewCount + 1);
+                
+                return {
+                  location,
+                  weight: Math.max(1, isNaN(weight) ? 1 : weight),
+                };
+              })
+          : [];
+        
+        // If no valid data, don't create heatmap
+        if (heatmapData.length === 0) {
+          setError("No valid competitor location data for heat map");
+          setLoading(false);
+          return;
+        }
 
         // Create heat map layer
         const heatmapLayer = new google.maps.visualization.HeatmapLayer({

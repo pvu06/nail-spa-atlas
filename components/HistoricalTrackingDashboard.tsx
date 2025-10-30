@@ -63,22 +63,30 @@ export function HistoricalTrackingDashboard({ currentSearchLocation }: Historica
 
       if (response.ok) {
         const data = await response.json();
-        setHistory(data.data || []);
+        // Ensure data.data is an array
+        const historyData = Array.isArray(data.data) ? data.data : [];
+        setHistory(historyData);
+      } else {
+        console.warn("Failed to fetch history, status:", response.status);
+        setHistory([]);
       }
     } catch (error) {
       console.error("Failed to fetch search history:", error);
+      setHistory([]); // Ensure empty array on error
     } finally {
       setLoading(false);
     }
   };
 
   // Prepare chart data for market trends
-  const marketTrendsData = history.map((h) => ({
-    date: new Date(h.searchDate).toLocaleDateString(),
-    avgRating: parseFloat(h.avgRating?.toString() || "0"),
-    avgGelPrice: parseFloat(h.avgGelPrice?.toString() || "0"),
-    competitors: h.competitorCount,
-  })).reverse();
+  const marketTrendsData = Array.isArray(history) 
+    ? history.map((h) => ({
+        date: new Date(h.searchDate).toLocaleDateString(),
+        avgRating: parseFloat(h.avgRating?.toString() || "0"),
+        avgGelPrice: parseFloat(h.avgGelPrice?.toString() || "0"),
+        competitors: h.competitorCount,
+      })).reverse()
+    : [];
 
   // Prepare competitor-specific trend data
   const getCompetitorTrend = (placeId: string) => {

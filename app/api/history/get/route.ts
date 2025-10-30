@@ -38,7 +38,10 @@ export async function POST(request: NextRequest) {
       take: limit,
     });
 
-    return successResponse({ data: history }, "Search history retrieved successfully");
+    // Ensure history is always an array
+    const historyData = Array.isArray(history) ? history : [];
+    
+    return successResponse({ data: historyData }, "Search history retrieved successfully");
   } catch (error) {
     console.error("Error fetching search history:", error);
     return errorResponse("Failed to fetch search history", 500);
