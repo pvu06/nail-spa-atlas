@@ -105,20 +105,25 @@ export function HeatMapView({ competitors, searchLocation }: HeatMapViewProps) {
         // Prepare heat map data with validation
         const heatmapData = Array.isArray(competitors) 
           ? competitors
-              .filter((competitor) => {
+              .filter((competitor: any) => {
+                // Get coordinates from various possible formats
+                const lat = competitor.latitude ?? competitor.location?.lat ?? competitor.lat;
+                const lng = competitor.longitude ?? competitor.location?.lng ?? competitor.lng;
+                
                 // Validate coordinates
                 const hasValidCoords = 
-                  typeof competitor.latitude === 'number' && 
-                  typeof competitor.longitude === 'number' &&
-                  !isNaN(competitor.latitude) &&
-                  !isNaN(competitor.longitude);
+                  typeof lat === 'number' && 
+                  typeof lng === 'number' &&
+                  !isNaN(lat) &&
+                  !isNaN(lng);
                 return hasValidCoords;
               })
-              .map((competitor) => {
-                const location = new google.maps.LatLng(
-                  competitor.latitude,
-                  competitor.longitude
-                );
+              .map((competitor: any) => {
+                // Get coordinates from various possible formats
+                const lat = competitor.latitude ?? competitor.location?.lat ?? competitor.lat;
+                const lng = competitor.longitude ?? competitor.location?.lng ?? competitor.lng;
+                
+                const location = new google.maps.LatLng(lat, lng);
                 
                 // Weight by rating and review count for competitive intensity
                 const rating = Number(competitor.rating) || 0;
