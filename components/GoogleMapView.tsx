@@ -71,89 +71,187 @@ export function GoogleMapView({
         markersRef.current.forEach((marker) => marker.setMap(null));
         markersRef.current = [];
 
-        // Add your location marker (green)
+        // Add your location marker (green) using new AdvancedMarkerElement API
         if (yourLocation) {
-          const yourMarker = new google.maps.Marker({
-            position: yourLocation,
-            map,
-            title: "Your Salon",
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 10,
-              fillColor: "#10b981",
-              fillOpacity: 1,
-              strokeColor: "#ffffff",
-              strokeWeight: 2,
-            },
-            zIndex: 1000,
-          });
+          try {
+            const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
+            const pin = new PinElement({
+              background: "#10b981",
+              borderColor: "#ffffff",
+              glyphColor: "#ffffff",
+              scale: 1.2,
+            });
+            const yourMarker = new AdvancedMarkerElement({
+              map,
+              position: yourLocation,
+              content: pin.element,
+              title: "Your Salon",
+            });
 
-          const yourInfoWindow = new google.maps.InfoWindow({
-            content: `
-              <div style="padding: 8px;">
-                <h3 style="font-weight: bold; margin-bottom: 4px;">Your Location</h3>
-                <p style="color: #666; font-size: 14px;">Search center</p>
-              </div>
-            `,
-          });
+            const yourInfoWindow = new google.maps.InfoWindow({
+              content: `
+                <div style="padding: 8px;">
+                  <h3 style="font-weight: bold; margin-bottom: 4px;">Your Location</h3>
+                  <p style="color: #666; font-size: 14px;">Search center</p>
+                </div>
+              `,
+            });
 
-          yourMarker.addListener("click", () => {
-            yourInfoWindow.open(map, yourMarker);
-          });
+            yourMarker.addListener("click" as any, () => {
+              yourInfoWindow.open({ map, anchor: yourMarker });
+            });
 
-          markersRef.current.push(yourMarker);
+            markersRef.current.push(yourMarker as any);
+          } catch (err) {
+            // Fallback to old Marker API
+            console.warn("Using fallback Marker API");
+            const yourMarker = new google.maps.Marker({
+              position: yourLocation,
+              map,
+              title: "Your Salon",
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: "#10b981",
+                fillOpacity: 1,
+                strokeColor: "#ffffff",
+                strokeWeight: 2,
+              },
+              zIndex: 1000,
+            });
+
+            const yourInfoWindow = new google.maps.InfoWindow({
+              content: `
+                <div style="padding: 8px;">
+                  <h3 style="font-weight: bold; margin-bottom: 4px;">Your Location</h3>
+                  <p style="color: #666; font-size: 14px;">Search center</p>
+                </div>
+              `,
+            });
+
+            yourMarker.addListener("click", () => {
+              yourInfoWindow.open(map, yourMarker);
+            });
+
+            markersRef.current.push(yourMarker);
+          }
         }
 
-        // Add competitor markers (red)
-        competitors.forEach((competitor, index) => {
-          const marker = new google.maps.Marker({
-            position: competitor.location,
-            map,
-            title: competitor.name,
-            label: {
-              text: String(index + 1),
-              color: "#ffffff",
-              fontSize: "12px",
-              fontWeight: "bold",
-            },
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 12,
-              fillColor: "#ef4444",
-              fillOpacity: 1,
-              strokeColor: "#ffffff",
-              strokeWeight: 2,
-            },
-          });
+        // Add competitor markers (red) using new AdvancedMarkerElement API
+        const addCompetitorMarkers = async () => {
+          try {
+            const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
+            
+            competitors.forEach(async (competitor, index) => {
+              // Create custom content with number label
+              const content = document.createElement("div");
+              content.style.cssText = `
+                background: #ef4444;
+                color: white;
+                border: 3px solid white;
+                border-radius: 50%;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                font-size: 14px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              `;
+              content.textContent = String(index + 1);
 
-          const infoWindow = new google.maps.InfoWindow({
-            content: `
-              <div style="padding: 12px; max-width: 250px;">
-                <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 16px;">${competitor.name}</h3>
-                ${competitor.rating ? `
-                  <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
-                    <span style="color: #fbbf24;">⭐</span>
-                    <span style="font-weight: 600;">${competitor.rating}</span>
+              const marker = new AdvancedMarkerElement({
+                map,
+                position: competitor.location,
+                content,
+                title: competitor.name,
+              });
+
+              const infoWindow = new google.maps.InfoWindow({
+                content: `
+                  <div style="padding: 12px; max-width: 250px;">
+                    <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 16px;">${competitor.name}</h3>
+                    ${competitor.rating ? `
+                      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                        <span style="color: #fbbf24;">⭐</span>
+                        <span style="font-weight: 600;">${competitor.rating}</span>
+                      </div>
+                    ` : ''}
+                    ${competitor.distanceMiles ? `
+                      <p style="color: #666; font-size: 14px; margin-bottom: 0;">
+                        ${competitor.distanceMiles} miles away
+                      </p>
+                    ` : ''}
                   </div>
-                ` : ''}
-                ${competitor.distanceMiles ? `
-                  <p style="color: #666; font-size: 14px; margin-bottom: 0;">
-                    ${competitor.distanceMiles} miles away
-                  </p>
-                ` : ''}
-              </div>
-            `,
-          });
+                `,
+              });
 
-          marker.addListener("click", () => {
-            infoWindow.open(map, marker);
-            if (onMarkerClick) {
-              onMarkerClick(competitor);
-            }
-          });
+              marker.addListener("click" as any, () => {
+                infoWindow.open({ map, anchor: marker });
+                if (onMarkerClick) {
+                  onMarkerClick(competitor);
+                }
+              });
 
-          markersRef.current.push(marker);
-        });
+              markersRef.current.push(marker as any);
+            });
+          } catch (err) {
+            // Fallback to old Marker API
+            console.warn("Using fallback Marker API for competitors");
+            competitors.forEach((competitor, index) => {
+              const marker = new google.maps.Marker({
+                position: competitor.location,
+                map,
+                title: competitor.name,
+                label: {
+                  text: String(index + 1),
+                  color: "#ffffff",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                },
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 12,
+                  fillColor: "#ef4444",
+                  fillOpacity: 1,
+                  strokeColor: "#ffffff",
+                  strokeWeight: 2,
+                },
+              });
+
+              const infoWindow = new google.maps.InfoWindow({
+                content: `
+                  <div style="padding: 12px; max-width: 250px;">
+                    <h3 style="font-weight: bold; margin-bottom: 8px; font-size: 16px;">${competitor.name}</h3>
+                    ${competitor.rating ? `
+                      <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                        <span style="color: #fbbf24;">⭐</span>
+                        <span style="font-weight: 600;">${competitor.rating}</span>
+                      </div>
+                    ` : ''}
+                    ${competitor.distanceMiles ? `
+                      <p style="color: #666; font-size: 14px; margin-bottom: 0;">
+                        ${competitor.distanceMiles} miles away
+                      </p>
+                    ` : ''}
+                  </div>
+                `,
+              });
+
+              marker.addListener("click", () => {
+                infoWindow.open(map, marker);
+                if (onMarkerClick) {
+                  onMarkerClick(competitor);
+                }
+              });
+
+              markersRef.current.push(marker);
+            });
+          }
+        };
+
+        await addCompetitorMarkers();
 
         // Fit bounds to show all markers
         if (competitors.length > 0 || yourLocation) {

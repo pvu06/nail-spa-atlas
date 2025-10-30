@@ -56,7 +56,7 @@ export function loadGoogleMapsScript(apiKey: string, libraries: string[] = []): 
   // Create new load promise
   googleMapsLoadPromise = new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${allLibraries.join(",")}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${allLibraries.join(",")}&loading=async`;
     script.async = true;
     script.defer = true;
 
