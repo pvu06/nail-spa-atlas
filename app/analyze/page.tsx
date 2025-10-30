@@ -8,6 +8,8 @@ import { PriceTrendLineChart } from "@/components/PriceTrendLineChart";
 import { MarketSharePieChart } from "@/components/MarketSharePieChart";
 import { AIInsights } from "@/components/AIInsights";
 import { MapView } from "@/components/MapView";
+import { HeatMapView } from "@/components/HeatMapView";
+import { HistoricalTrackingDashboard } from "@/components/HistoricalTrackingDashboard";
 import { ExportButtons } from "@/components/ExportButtons";
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { Button } from "@/components/ui/button";
@@ -63,6 +65,23 @@ export default function AnalyzePage() {
       setCompetitors(competitorsData);
       setSearchLocation(location);
       setHasSearched(true);
+
+      // Save search history
+      try {
+        await fetch("/api/history/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            searchAddress: data.address,
+            latitude: location.lat,
+            longitude: location.lng,
+            radiusMiles: data.radius,
+            competitors: competitorsData,
+          }),
+        });
+      } catch (historyErr) {
+        console.warn("Failed to save search history:", historyErr);
+      }
 
       toast.success(`Found ${competitorsData.length} competitors!`);
     } catch (err: any) {
@@ -183,12 +202,21 @@ export default function AnalyzePage() {
             {/* AI Insights */}
             <AIInsights competitors={competitors} />
 
-            {/* Map View */}
+            {/* Historical Tracking Dashboard */}
+            <HistoricalTrackingDashboard currentSearchLocation={searchLocation || undefined} />
+
+            {/* Map Views - Side by Side */}
             {searchLocation && (
-              <MapView 
-                competitors={competitors} 
-                center={searchLocation}
-              />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <MapView 
+                  competitors={competitors} 
+                  center={searchLocation}
+                />
+                <HeatMapView 
+                  competitors={competitors} 
+                  searchLocation={searchLocation}
+                />
+              </div>
             )}
           </motion.div>
         )}
