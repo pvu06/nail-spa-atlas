@@ -43,7 +43,16 @@ export async function saveSearchHistory(params: {
   radiusMiles: number;
   competitors: any[];
 }): Promise<string> {
+  console.log("🗂️ [saveSearchHistory] Starting to save search history");
   const { searchAddress, latitude, longitude, radiusMiles, competitors } = params;
+
+  console.log("🗂️ [saveSearchHistory] Parameters:", {
+    searchAddress,
+    latitude,
+    longitude,
+    radiusMiles,
+    competitorCount: competitors.length,
+  });
 
   // Calculate aggregated metrics
   const avgRating = competitors.reduce((sum, c) => sum + (c.rating || 0), 0) / competitors.length;
@@ -51,7 +60,15 @@ export async function saveSearchHistory(params: {
   const avgPedicurePrice = competitors.reduce((sum, c) => sum + (c.samplePrices?.pedicure || 0), 0) / competitors.length;
   const avgAcrylicPrice = competitors.reduce((sum, c) => sum + (c.samplePrices?.acrylic || 0), 0) / competitors.length;
 
+  console.log("📊 [saveSearchHistory] Calculated metrics:", {
+    avgRating,
+    avgGelPrice,
+    avgPedicurePrice,
+    avgAcrylicPrice,
+  });
+
   // Create search history record with snapshots
+  console.log("💾 [saveSearchHistory] Creating database record...");
   const searchHistory = await prisma.searchHistory.create({
     data: {
       searchAddress,
@@ -81,6 +98,7 @@ export async function saveSearchHistory(params: {
     },
   });
 
+  console.log("✅ [saveSearchHistory] Saved successfully, ID:", searchHistory.id);
   return searchHistory.id;
 }
 
@@ -300,4 +318,6 @@ export async function detectMarketChanges(params: {
     ratingChanges,
   };
 }
+
+
 

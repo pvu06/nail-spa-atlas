@@ -67,7 +67,15 @@ export default function AnalyzePage() {
       setHasSearched(true);
 
       // Save search history
+      console.log("🔄 Starting to save search history...");
       try {
+        console.log("📝 Sending history data:", {
+          address: data.address,
+          location,
+          radius: data.radius,
+          competitorCount: competitorsData.length,
+        });
+        
         const saveResponse = await fetch("/api/history/save", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -80,14 +88,17 @@ export default function AnalyzePage() {
           }),
         });
         
+        console.log("📡 Response status:", saveResponse.status, saveResponse.statusText);
+        
         if (!saveResponse.ok) {
           const errorData = await saveResponse.json();
-          console.error("Failed to save history:", errorData);
+          console.error("❌ Failed to save history:", errorData);
         } else {
-          console.log("Search history saved successfully");
+          const successData = await saveResponse.json();
+          console.log("✅ Search history saved successfully!", successData);
         }
       } catch (historyErr) {
-        console.error("Failed to save search history:", historyErr);
+        console.error("💥 Exception saving search history:", historyErr);
       }
 
       toast.success(`Found ${competitorsData.length} competitors!`);
