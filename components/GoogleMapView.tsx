@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Loader2 } from "lucide-react";
+import { loadGoogleMapsScript } from "@/lib/google-maps-loader";
 
 interface Competitor {
   id: string;
@@ -19,56 +20,6 @@ interface GoogleMapViewProps {
   onMarkerClick?: (competitor: Competitor) => void;
 }
 
-// Global flag to track if Google Maps is loading or loaded
-let isGoogleMapsLoading = false;
-let googleMapsLoadPromise: Promise<void> | null = null;
-
-// Function to load Google Maps script only once
-function loadGoogleMapsScript(apiKey: string): Promise<void> {
-  // If already loaded
-  if (window.google?.maps) {
-    return Promise.resolve();
-  }
-
-  // If currently loading, return existing promise
-  if (isGoogleMapsLoading && googleMapsLoadPromise) {
-    return googleMapsLoadPromise;
-  }
-
-  // Check if script already exists in DOM
-  const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-  if (existingScript) {
-    return new Promise((resolve) => {
-      const checkInterval = setInterval(() => {
-        if (window.google?.maps) {
-          clearInterval(checkInterval);
-          resolve();
-        }
-      }, 100);
-    });
-  }
-
-  // Start loading
-  isGoogleMapsLoading = true;
-  googleMapsLoadPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      isGoogleMapsLoading = false;
-      resolve();
-    };
-    script.onerror = (error) => {
-      isGoogleMapsLoading = false;
-      googleMapsLoadPromise = null;
-      reject(error);
-    };
-    document.head.appendChild(script);
-  });
-
-  return googleMapsLoadPromise;
-}
 
 export function GoogleMapView({
   center,

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { loadGoogleMapsScript } from "@/lib/google-maps-loader";
 
 interface Competitor {
   name: string;
@@ -17,53 +18,6 @@ interface HeatMapViewProps {
   searchLocation: { lat: number; lng: number };
 }
 
-// Global flag to track if Google Maps script is loaded
-let isGoogleMapsLoaded = false;
-let googleMapsLoadPromise: Promise<void> | null = null;
-
-function loadGoogleMapsScript(apiKey: string): Promise<void> {
-  // Check if already loaded
-  if (isGoogleMapsLoaded && window.google?.maps) {
-    return Promise.resolve();
-  }
-
-  // Return existing promise if currently loading
-  if (googleMapsLoadPromise) {
-    return googleMapsLoadPromise;
-  }
-
-  // Check if script tag already exists
-  const existingScript = document.querySelector(
-    'script[src*="maps.googleapis.com"]'
-  );
-  if (existingScript && window.google?.maps) {
-    isGoogleMapsLoaded = true;
-    return Promise.resolve();
-  }
-
-  // Create new load promise
-  googleMapsLoadPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=visualization`;
-    script.async = true;
-    script.defer = true;
-
-    script.onload = () => {
-      isGoogleMapsLoaded = true;
-      googleMapsLoadPromise = null;
-      resolve();
-    };
-
-    script.onerror = () => {
-      googleMapsLoadPromise = null;
-      reject(new Error("Failed to load Google Maps script"));
-    };
-
-    document.head.appendChild(script);
-  });
-
-  return googleMapsLoadPromise;
-}
 
 export function HeatMapView({ competitors, searchLocation }: HeatMapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
