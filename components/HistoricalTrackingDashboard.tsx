@@ -51,6 +51,11 @@ export function HistoricalTrackingDashboard({ currentSearchLocation }: Historica
   const fetchSearchHistory = async () => {
     setLoading(true);
     console.log("📊 [HistoricalDashboard] Fetching search history...");
+    console.log("📍 [HistoricalDashboard] currentSearchLocation:", currentSearchLocation);
+    console.log("📍 [HistoricalDashboard] Sending lat/lng:", {
+      latitude: currentSearchLocation?.lat,
+      longitude: currentSearchLocation?.lng,
+    });
     try {
       const response = await fetch("/api/history/get", {
         method: "POST",
