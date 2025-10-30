@@ -71,7 +71,14 @@ export default function Home() {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-gray-600 text-white hover:bg-gray-800">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-lg px-8 py-6 border-gray-600 text-white hover:bg-gray-800"
+                onClick={() => {
+                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
                 View Demo
               </Button>
             </div>
@@ -96,7 +103,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="container mx-auto px-4 py-20 bg-gray-50">
+      <section id="how-it-works" className="container mx-auto px-4 py-20 bg-gray-50">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
