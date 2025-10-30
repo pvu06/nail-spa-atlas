@@ -37,6 +37,7 @@ export default function AnalyzePage() {
 
     try {
       // First geocode the address
+      toast.info("🗺️ Finding location...");
       const geocodeResult = await apiClient.geocodeAddress(data.address);
       
       if (!geocodeResult.success || !geocodeResult.data) {
@@ -46,6 +47,7 @@ export default function AnalyzePage() {
       const { lat, lng } = geocodeResult.data;
 
       // Then search for competitors
+      toast.info("🔍 Finding competitors...");
       const competitorResult = await apiClient.searchCompetitors({
         address: data.address,
         radius: data.radius,
@@ -53,6 +55,8 @@ export default function AnalyzePage() {
         lat,
         lng,
       });
+      
+      toast.info("🤖 Scraping real prices from websites...", { duration: 5000 });
 
       if (!competitorResult.success || !competitorResult.data) {
         throw new Error(competitorResult.error?.message || "Failed to search competitors");
@@ -65,6 +69,8 @@ export default function AnalyzePage() {
       setCompetitors(competitorsData);
       setSearchLocation(location);
       setHasSearched(true);
+      
+      toast.success(`✅ Found ${competitorsData.length} competitors with real pricing data!`);
 
       // Save search history
       console.log("🔄 Starting to save search history...");

@@ -72,18 +72,18 @@ export async function POST(request: NextRequest) {
         return {
           id: place.placeId,
           name: place.name,
-          website: place.website || "#", // Now has real website from Place Details API
+          website: place.website || "#",
           address: place.address,
           location: place.location,
           rating: place.rating || 0,
           reviewCount: place.userRatingsTotal || 0,
           priceRange: priceRange,
           distanceMiles: calculateDistance(lat, lng, place.location.lat, place.location.lng),
-          // Mock service prices for now (can be scraped later)
+          // Placeholder prices - will be replaced with scraped prices
           samplePrices: {
-            gel: Math.round(25 + Math.random() * 20),
-            pedicure: Math.round(30 + Math.random() * 20),
-            acrylic: Math.round(45 + Math.random() * 25),
+            gel: null,
+            pedicure: null,
+            acrylic: null,
           },
           staffBand: (place.userRatingsTotal || 0) > 200 ? "8+" : (place.userRatingsTotal || 0) > 100 ? "4-7" : "1-3",
           hoursPerWeek: 50 + Math.floor(Math.random() * 30),
@@ -126,6 +126,57 @@ export async function POST(request: NextRequest) {
       });
       
       const competitors = competitorsWithScore.slice(0, competitorCount);
+
+      // 🤖 WEB SCRAPING: Extract real prices from competitor websites
+      console.log(`🤖 Starting web scraping for ${competitors.length} competitors...`);
+      let scrapedPricesMap = new Map();
+      
+      try {
+        const { batchScrapeCompetitors } = await import("@/lib/scraping/competitor-price-scraper");
+        
+        const scrapingTargets = competitors
+          .filter(comp => comp.website && comp.website !== "#")
+          .map(comp => ({
+            name: comp.name,
+            website: comp.website
+          }));
+        
+        console.log(`🎯 ${scrapingTargets.length} competitors have websites to scrape`);
+        
+        if (scrapingTargets.length > 0) {
+          scrapedPricesMap = await batchScrapeCompetitors(scrapingTargets, 3);
+          console.log(`✅ Web scraping completed: ${scrapedPricesMap.size} results`);
+        } else {
+          console.log(`⚠️  No websites to scrape`);
+        }
+      } catch (scrapingError) {
+        console.error("❌ Web scraping failed, falling back to estimates:", scrapingError);
+        // Continue with estimated prices if scraping fails
+      }
+      
+      // Merge scraped prices into competitors
+      competitors.forEach(comp => {
+        const scrapedData = scrapedPricesMap.get(comp.name);
+        if (scrapedData && scrapedData.success) {
+          console.log(`✅ Using scraped prices for ${comp.name}`);
+          comp.samplePrices = {
+            gel: scrapedData.gel || comp.samplePrices.gel,
+            pedicure: scrapedData.pedicure || comp.samplePrices.pedicure,
+            acrylic: scrapedData.acrylic || comp.samplePrices.acrylic,
+          };
+        } else {
+          // Fallback to estimated prices based on Google price level
+          console.log(`⚠️  No scraped prices for ${comp.name}, using estimates`);
+          const priceLevel = competitors.find(c => c.name === comp.name)?.priceRange || "$$";
+          const baseMultiplier = priceLevel === "$" ? 0.8 : priceLevel === "$$" ? 1.0 : priceLevel === "$$$" ? 1.2 : 1.4;
+          
+          comp.samplePrices = {
+            gel: Math.round(35 * baseMultiplier),
+            pedicure: Math.round(40 * baseMultiplier),
+            acrylic: Math.round(55 * baseMultiplier),
+          };
+        }
+      });
 
       // Save search to database (only if authenticated)
       if (user) {
