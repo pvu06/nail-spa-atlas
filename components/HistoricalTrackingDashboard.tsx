@@ -50,6 +50,7 @@ export function HistoricalTrackingDashboard({ currentSearchLocation }: Historica
 
   const fetchSearchHistory = async () => {
     setLoading(true);
+    console.log("📊 [HistoricalDashboard] Fetching search history...");
     try {
       const response = await fetch("/api/history/get", {
         method: "POST",
@@ -61,17 +62,21 @@ export function HistoricalTrackingDashboard({ currentSearchLocation }: Historica
         }),
       });
 
+      console.log("📊 [HistoricalDashboard] Response status:", response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log("📊 [HistoricalDashboard] Received data:", data);
         // Ensure data.data is an array
         const historyData = Array.isArray(data.data) ? data.data : [];
+        console.log("📊 [HistoricalDashboard] History data length:", historyData.length);
         setHistory(historyData);
       } else {
-        console.warn("Failed to fetch history, status:", response.status);
+        console.warn("❌ [HistoricalDashboard] Failed to fetch history, status:", response.status);
         setHistory([]);
       }
     } catch (error) {
-      console.error("Failed to fetch search history:", error);
+      console.error("💥 [HistoricalDashboard] Failed to fetch search history:", error);
       setHistory([]); // Ensure empty array on error
     } finally {
       setLoading(false);

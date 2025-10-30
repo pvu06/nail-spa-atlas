@@ -4,8 +4,10 @@ import { successResponse, errorResponse } from "@/lib/api-response";
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("📥 [HISTORY GET API] Received get request");
     const body = await request.json();
     const { limit = 10, latitude, longitude } = body;
+    console.log("📦 [HISTORY GET API] Query params:", { limit, latitude, longitude });
 
     // Build query
     const where: any = {};
@@ -24,9 +26,13 @@ export async function POST(request: NextRequest) {
         gte: longitude - lngRange,
         lte: longitude + lngRange,
       };
+      console.log("🔍 [HISTORY GET API] Searching nearby:", { latRange, lngRange });
+    } else {
+      console.log("🌍 [HISTORY GET API] Searching all locations");
     }
 
     // Fetch search history with snapshots
+    console.log("💾 [HISTORY GET API] Querying database...");
     const history = await prisma.searchHistory.findMany({
       where,
       include: {
@@ -38,12 +44,15 @@ export async function POST(request: NextRequest) {
       take: limit,
     });
 
+    console.log("✅ [HISTORY GET API] Found", history.length, "records");
+    
     // Ensure history is always an array
     const historyData = Array.isArray(history) ? history : [];
     
     return successResponse({ data: historyData }, "Search history retrieved successfully");
-  } catch (error) {
-    console.error("Error fetching search history:", error);
+  } catch (error: any) {
+    console.error("💥 [HISTORY GET API] Error fetching search history:", error);
+    console.error("Stack:", error.stack);
     return errorResponse("Failed to fetch search history", 500);
   }
 }
