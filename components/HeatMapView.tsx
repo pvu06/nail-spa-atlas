@@ -61,13 +61,6 @@ export function HeatMapView({ competitors, searchLocation }: HeatMapViewProps) {
           return;
         }
 
-        // Import libraries if new API is available
-        if (typeof google.maps.importLibrary === 'function') {
-          await google.maps.importLibrary("maps");
-          await google.maps.importLibrary("visualization");
-        }
-        // If importLibrary doesn't exist, libraries are already loaded via script URL
-
         // Create map
         const googleMap = new google.maps.Map(mapRef.current, {
           center: searchLocation,
@@ -94,42 +87,20 @@ export function HeatMapView({ competitors, searchLocation }: HeatMapViewProps) {
 
         setMap(googleMap);
 
-        // Add search location marker using new AdvancedMarkerElement API
-        try {
-          // Check if new marker API is available
-          if (typeof google.maps.importLibrary !== 'function') {
-            throw new Error("importLibrary not available, using fallback");
-          }
-          const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
-          const pin = new PinElement({
-            background: "#3B82F6",
-            borderColor: "#ffffff",
-            glyphColor: "#ffffff",
-            scale: 1.2,
-          });
-          new AdvancedMarkerElement({
-            map: googleMap,
-            position: searchLocation,
-            content: pin.element,
-            title: "Search Location",
-          });
-        } catch (err) {
-          // Fallback to old Marker if new API not available
-          console.warn("AdvancedMarkerElement not available, using fallback");
-          new google.maps.Marker({
-            position: searchLocation,
-            map: googleMap,
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 10,
-              fillColor: "#3B82F6",
-              fillOpacity: 1,
-              strokeColor: "#ffffff",
-              strokeWeight: 2,
-            },
-            title: "Search Location",
-          });
-        }
+        // Add search location marker
+        new google.maps.Marker({
+          position: searchLocation,
+          map: googleMap,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: "#3B82F6",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+          },
+          title: "Search Location",
+        });
 
         // Prepare heat map data with validation
         const heatmapData = Array.isArray(competitors) 
