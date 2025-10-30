@@ -165,13 +165,30 @@ export function HistoricalTrackingDashboard({ currentSearchLocation }: Historica
     );
   }
 
+  const handleExportHistory = () => {
+    window.open("/api/history/export", "_blank");
+  };
+
   return (
     <Card className="w-full bg-white border border-gray-200">
       <CardHeader className="border-b border-gray-200">
-        <CardTitle className="text-lg font-bold text-gray-900">Historical Market Analysis</CardTitle>
-        <p className="text-sm text-gray-600 mt-1">
-          Tracking {history.length} previous searches with longitudinal competitive trends
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-lg font-bold text-gray-900">Historical Market Analysis</CardTitle>
+            <p className="text-sm text-gray-600 mt-1">
+              Tracking {history.length} previous searches with longitudinal competitive trends
+            </p>
+          </div>
+          <button
+            onClick={handleExportHistory}
+            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export History
+          </button>
+        </div>
       </CardHeader>
       <CardContent className="p-6 space-y-6">
         
