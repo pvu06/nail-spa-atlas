@@ -72,8 +72,18 @@ export function HistoricalTrackingDashboard({ currentSearchLocation }: Historica
       if (response.ok) {
         const data = await response.json();
         console.log("📊 [HistoricalDashboard] Received data:", data);
-        // Ensure data.data is an array
-        const historyData = Array.isArray(data.data) ? data.data : [];
+        console.log("📊 [HistoricalDashboard] data.data type:", typeof data.data);
+        console.log("📊 [HistoricalDashboard] data.data value:", data.data);
+        
+        // Handle nested data structure from successResponse wrapper
+        // Response is: { success: true, data: { data: Array }, message: "..." }
+        let historyData = [];
+        if (data.data && Array.isArray(data.data.data)) {
+          historyData = data.data.data; // Nested case
+        } else if (Array.isArray(data.data)) {
+          historyData = data.data; // Direct array case
+        }
+        
         console.log("📊 [HistoricalDashboard] History data length:", historyData.length);
         setHistory(historyData);
       } else {
@@ -107,9 +117,9 @@ export function HistoricalTrackingDashboard({ currentSearchLocation }: Historica
       if (snapshot) {
         competitorData.push({
           date: new Date(search.searchDate).toLocaleDateString(),
-          rating: snapshot.rating,
-          reviewCount: snapshot.reviewCount,
-          gelPrice: snapshot.gelPrice,
+          rating: parseFloat(snapshot.rating?.toString() || "0"),
+          reviewCount: snapshot.reviewCount || 0,
+          gelPrice: parseFloat(snapshot.gelPrice?.toString() || "0"),
         });
       }
     });
@@ -238,12 +248,12 @@ export function HistoricalTrackingDashboard({ currentSearchLocation }: Historica
                       {new Date(search.searchDate).toLocaleDateString()} {new Date(search.searchDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="p-2 text-gray-700">{search.searchAddress}</td>
-                    <td className="text-center p-2 text-gray-700">{search.radiusMiles} mi</td>
+                    <td className="text-center p-2 text-gray-700">{Number(search.radiusMiles)} mi</td>
                     <td className="text-center p-2 text-gray-700">{search.competitorCount}</td>
                     <td className="text-center p-2">
-                      <Badge className="bg-gray-700 text-white text-xs">{search.avgRating?.toFixed(2)}</Badge>
+                      <Badge className="bg-gray-700 text-white text-xs">{search.avgRating ? Number(search.avgRating).toFixed(2) : 'N/A'}</Badge>
                     </td>
-                    <td className="text-center p-2 text-gray-700">${search.avgGelPrice?.toFixed(0)}</td>
+                    <td className="text-center p-2 text-gray-700">${search.avgGelPrice ? Number(search.avgGelPrice).toFixed(0) : 'N/A'}</td>
                   </tr>
                 ))}
               </tbody>

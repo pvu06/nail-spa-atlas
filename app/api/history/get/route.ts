@@ -33,18 +33,25 @@ export async function POST(request: NextRequest) {
 
     // Fetch search history with snapshots
     console.log("💾 [HISTORY GET API] Querying database...");
-    const history = await prisma.searchHistory.findMany({
-      where,
-      include: {
-        snapshots: true,
-      },
-      orderBy: {
-        searchDate: "desc",
-      },
-      take: limit,
-    });
-
-    console.log("✅ [HISTORY GET API] Found", history.length, "records");
+    console.log("💾 [HISTORY GET API] Where clause:", JSON.stringify(where, null, 2));
+    
+    let history;
+    try {
+      history = await prisma.searchHistory.findMany({
+        where,
+        include: {
+          snapshots: true,
+        },
+        orderBy: {
+          searchDate: "desc",
+        },
+        take: limit,
+      });
+      console.log("✅ [HISTORY GET API] Found", history.length, "records");
+    } catch (queryError: any) {
+      console.error("💥 [HISTORY GET API] Query error:", queryError.message);
+      throw queryError;
+    }
     
     // Ensure history is always an array
     const historyData = Array.isArray(history) ? history : [];

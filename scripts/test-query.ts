@@ -7,13 +7,13 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 const prisma = new PrismaClient();
 
 async function testQuery() {
-  // Test with New York coordinates
-  const latitude = 40.7127753;
-  const longitude = -74.0059728;
+  // Test with Miami coordinates (from the latest search)
+  const latitude = 25.7616798;
+  const longitude = -80.1917902;
   const latRange = 0.725;
   const lngRange = 0.725;
 
-  console.log("🔍 Testing query with New York coordinates:");
+  console.log("🔍 Testing query with Miami coordinates:");
   console.log(`   Lat: ${latitude} ± ${latRange}`);
   console.log(`   Lng: ${longitude} ± ${lngRange}\n`);
 
