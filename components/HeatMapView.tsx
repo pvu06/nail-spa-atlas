@@ -61,6 +61,10 @@ export function HeatMapView({ competitors, searchLocation }: HeatMapViewProps) {
           return;
         }
 
+        // Import core Maps and visualization libraries explicitly
+        await google.maps.importLibrary("maps");
+        await google.maps.importLibrary("visualization");
+
         // Create map
         const googleMap = new google.maps.Map(mapRef.current, {
           center: searchLocation,

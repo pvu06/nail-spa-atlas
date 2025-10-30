@@ -49,6 +49,9 @@ export function GoogleMapView({
 
         if (!mapRef.current) return;
 
+        // Import the core Maps library explicitly
+        await google.maps.importLibrary("maps");
+
         // Create map
         const map = new google.maps.Map(mapRef.current, {
           center,
