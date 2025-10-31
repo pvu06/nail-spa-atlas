@@ -210,11 +210,10 @@ async function extractFromByChronos(page: any): Promise<ServicePrice[]> {
   try {
     console.log(`    🔍 Extracting from byChronos...`);
     
-    const services = await page.evaluate(() => {
+    const extractionResult = await page.evaluate(() => {
       const results: any[] = [];
       const buttons = Array.from(document.querySelectorAll("button"));
-      
-      console.log(`Found ${buttons.length} buttons total`);
+      const debugInfo: any = { buttonCount: buttons.length, foundServices: [] };
       
       buttons.forEach((button: any) => {
         const text = button.textContent || "";
@@ -230,7 +229,7 @@ async function extractFromByChronos(page: any): Promise<ServicePrice[]> {
           else if (lower.includes("acrylic") || lower.includes("uv gel") || lower.includes("extension")) type = "acrylic";
           
           if (type !== "other" && price >= 15 && price <= 250) {
-            console.log(`✅ Found: ${text.substring(0, 50)} → $${price}`);
+            debugInfo.foundServices.push(`${text.substring(0, 50)} → ${type} $${price}`);
             results.push({
               serviceName: text.split("$")[0].trim(),
               serviceType: type,
@@ -242,11 +241,14 @@ async function extractFromByChronos(page: any): Promise<ServicePrice[]> {
         }
       });
       
-      return results;
+      return { services: results, debug: debugInfo };
     });
 
-    console.log(`    📊 byChronos: Extracted ${services.length} services`);
-    return services;
+    console.log(`    📊 byChronos: Found ${extractionResult.debug.buttonCount} buttons, extracted ${extractionResult.services.length} services`);
+    if (extractionResult.services.length > 0) {
+      extractionResult.debug.foundServices.forEach((s: string) => console.log(`      ✅ ${s}`));
+    }
+    return extractionResult.services;
   } catch (error: any) {
     console.log(`    ❌ byChronos extraction failed: ${error.message}`);
     return [];
@@ -260,12 +262,10 @@ async function extractFromVagaro(page: any): Promise<ServicePrice[]> {
   try {
     console.log(`    🔍 Extracting from Vagaro...`);
     
-    const services = await page.evaluate(() => {
+    const extractionResult = await page.evaluate(() => {
       const results: any[] = [];
       const allText = document.body.innerText || document.body.textContent || "";
       const lines = allText.split("\n").filter(l => l.trim().length > 0);
-      
-      console.log(`Found ${lines.length} lines of text`);
       
       const seen = new Set();
       let priceCount = 0;
@@ -295,8 +295,6 @@ async function extractFromVagaro(page: any): Promise<ServicePrice[]> {
           if (seen.has(key)) continue;
           seen.add(key);
           
-          console.log(`✅ Found: "${trimmed.substring(0, 50)}" → ${type} $${price}`);
-          
           results.push({
             serviceName: trimmed.split("$")[0].trim().substring(0, 60),
             serviceType: type,
@@ -307,12 +305,11 @@ async function extractFromVagaro(page: any): Promise<ServicePrice[]> {
         }
       }
       
-      console.log(`Found ${priceCount} total prices, ${results.length} matched services`);
-      return results;
+      return { services: results, debug: { totalLines: lines.length, totalPrices: priceCount, matchedServices: results.length } };
     });
 
-    console.log(`    📊 Vagaro: Extracted ${services.length} services`);
-    return services;
+    console.log(`    📊 Vagaro: Found ${extractionResult.debug.totalLines} lines, ${extractionResult.debug.totalPrices} prices, ${extractionResult.services.length} matched`);
+    return extractionResult.services;
   } catch (error: any) {
     console.log(`    ❌ Vagaro extraction failed: ${error.message}`);
     return [];
@@ -326,12 +323,10 @@ async function extractSimple(page: any): Promise<ServicePrice[]> {
   try {
     console.log(`    🔍 Using simple extraction...`);
     
-    const services = await page.evaluate(() => {
+    const extractionResult = await page.evaluate(() => {
       const results: any[] = [];
       const allText = document.body.innerText || document.body.textContent || "";
       const lines = allText.split("\n").map(l => l.trim()).filter(l => l.length > 3);
-      
-      console.log(`Analyzing ${lines.length} lines of text`);
       
       const seen = new Set<string>();
       let totalPrices = 0;
@@ -365,8 +360,6 @@ async function extractSimple(page: any): Promise<ServicePrice[]> {
         if (seen.has(key)) continue;
         seen.add(key);
         
-        console.log(`✅ Found: "${line.substring(0, 50)}" → ${type} $${price}`);
-        
         results.push({
           serviceName: line.substring(0, 60),
           serviceType: type,
@@ -376,12 +369,11 @@ async function extractSimple(page: any): Promise<ServicePrice[]> {
         });
       }
       
-      console.log(`Found ${totalPrices} total prices, ${results.length} matched services`);
-      return results;
+      return { services: results, debug: { totalLines: lines.length, totalPrices, matchedServices: results.length } };
     });
 
-    console.log(`    📊 Simple: Extracted ${services.length} services`);
-    return services;
+    console.log(`    📊 Simple: Found ${extractionResult.debug.totalLines} lines, ${extractionResult.debug.totalPrices} prices, ${extractionResult.services.length} matched`);
+    return extractionResult.services;
   } catch (error: any) {
     console.log(`    ❌ Simple extraction failed: ${error.message}`);
     return [];
