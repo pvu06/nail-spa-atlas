@@ -1,4 +1,5 @@
 import puppeteer, { Browser, Page } from "puppeteer";
+// @ts-ignore - no types available for user-agents
 import UserAgent from "user-agents";
 
 let browser: Browser | null = null;
@@ -17,6 +18,11 @@ export async function getBrowser(): Promise<Browser> {
         "--disable-accelerated-2d-canvas",
         "--disable-gpu",
         "--window-size=1920x1080",
+        // Disable blocking features that cause ERR_BLOCKED_BY_CLIENT
+        "--disable-features=IsolateOrigins,site-per-process",
+        "--disable-blink-features=AutomationControlled",
+        "--disable-web-security",
+        "--disable-features=site-per-process",
       ],
     });
   }
@@ -91,7 +97,7 @@ export async function takeScreenshot(
   filename: string
 ): Promise<void> {
   try {
-    await page.screenshot({ path: filename, fullPage: true });
+    await page.screenshot({ path: filename as `${string}.png`, fullPage: true });
   } catch (error) {
     console.error("Screenshot error:", error);
   }

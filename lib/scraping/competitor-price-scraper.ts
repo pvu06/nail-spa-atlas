@@ -35,7 +35,34 @@ const SERVICE_PAGE_PATHS = [
 const SERVICE_KEYWORDS = {
   gel: ["gel manicure", "gel polish", "gel nails", "gel color", "shellac"],
   pedicure: ["pedicure", "spa pedicure", "deluxe pedicure", "classic pedicure", "basic pedicure"],
-  acrylic: ["acrylic", "full set", "acrylic nails", "acrylic full set", "nail extensions", "acrylics"],
+  acrylic: ["acrylic full set", "full set", "acrylic nails", "nail extensions", "acrylics", "acrylic set"],
+};
+
+/**
+ * Keywords that indicate a price is NOT for the main service (to exclude)
+ */
+const EXCLUDE_KEYWORDS = [
+  "removal",
+  "repair",
+  "fill",
+  "refill",
+  "add-on",
+  "addon",
+  "additional",
+  "extra",
+  "soak off",
+  "change",
+  "per nail",
+  "each nail",
+];
+
+/**
+ * Realistic price ranges for each service type
+ */
+const PRICE_RANGES = {
+  gel: { min: 25, max: 80 },         // Gel manicure typically $30-$60
+  pedicure: { min: 30, max: 120 },   // Pedicure typically $35-$90
+  acrylic: { min: 40, max: 180 },    // Full acrylic set typically $50-$120
 };
 
 /**
@@ -255,14 +282,25 @@ async function extractAllServices(page: any, html: string, url: string): Promise
     console.log(`    🔍 METHOD 1: Found ${visibleServices.length} elements with prices`);
 
     for (const item of visibleServices) {
+      const textLower = item.text.toLowerCase();
+      
+      // Skip if it contains exclude keywords (fill, removal, etc.)
+      if (EXCLUDE_KEYWORDS.some(kw => textLower.includes(kw))) {
+        continue;
+      }
+
       const prices = extractPrices(item.text);
       if (prices.length === 0) continue;
 
       const serviceType = detectServiceType(item.text);
       if (serviceType === "other") continue;
 
-      // Validate price range
-      const validPrices = prices.filter(p => p >= 20 && p <= 250);
+      // Validate price against realistic ranges
+      const priceRange = PRICE_RANGES[serviceType as keyof typeof PRICE_RANGES];
+      const validPrices = priceRange 
+        ? prices.filter(p => p >= priceRange.min && p <= priceRange.max)
+        : prices.filter(p => p >= 20 && p <= 250);
+      
       if (validPrices.length === 0) continue;
 
       const key = `${serviceType}-${validPrices[0]}`;
@@ -301,7 +339,12 @@ async function extractAllServices(page: any, html: string, url: string): Promise
   selectors.forEach(selector => {
     $(selector).each((_, element) => {
       const text = $(element).text().trim();
+      const textLower = text.toLowerCase();
+      
       if (text.length < 10 || text.length > 300) return;
+
+      // Skip exclude keywords
+      if (EXCLUDE_KEYWORDS.some(kw => textLower.includes(kw))) return;
 
       const prices = extractPrices(text);
       if (prices.length === 0) return;
@@ -309,7 +352,12 @@ async function extractAllServices(page: any, html: string, url: string): Promise
       const serviceType = detectServiceType(text);
       if (serviceType === "other") return;
 
-      const validPrices = prices.filter(p => p >= 20 && p <= 250);
+      // Validate price against realistic ranges
+      const priceRange = PRICE_RANGES[serviceType as keyof typeof PRICE_RANGES];
+      const validPrices = priceRange 
+        ? prices.filter(p => p >= priceRange.min && p <= priceRange.max)
+        : prices.filter(p => p >= 20 && p <= 250);
+      
       if (validPrices.length === 0) return;
 
       const key = `${serviceType}-${validPrices[0]}`;
@@ -334,18 +382,28 @@ async function extractAllServices(page: any, html: string, url: string): Promise
     const lines = plainText.split("\n").map(l => l.trim()).filter(l => l.length > 10 && l.length < 200);
 
     for (const line of lines) {
+      const lineLower = line.toLowerCase();
+      
+      // Skip exclude keywords
+      if (EXCLUDE_KEYWORDS.some(kw => lineLower.includes(kw))) continue;
+
       const prices = extractPrices(line);
       if (prices.length === 0) continue;
 
       const serviceType = detectServiceType(line);
       if (serviceType === "other") continue;
 
-      const validPrices = prices.filter(p => p >= 20 && p <= 250);
+      // Validate price against realistic ranges
+      const priceRange = PRICE_RANGES[serviceType as keyof typeof PRICE_RANGES];
+      const validPrices = priceRange 
+        ? prices.filter(p => p >= priceRange.min && p <= priceRange.max)
+        : prices.filter(p => p >= 20 && p <= 250);
+      
       if (validPrices.length === 0) continue;
 
       // Check if price is near service keyword (within same line)
       const hasKeyword = Object.values(SERVICE_KEYWORDS).flat().some(kw => 
-        line.toLowerCase().includes(kw.toLowerCase())
+        lineLower.includes(kw.toLowerCase())
       );
       if (!hasKeyword) continue;
 

@@ -175,6 +175,13 @@ export async function POST(request: NextRequest) {
         }
       });
 
+      // Reconnect Prisma after long scraping operation
+      try {
+        await prisma.$connect();
+      } catch (reconnectError) {
+        console.error("Prisma reconnect failed:", reconnectError);
+      }
+
       // Save search to database (only if authenticated)
       if (user) {
         try {
