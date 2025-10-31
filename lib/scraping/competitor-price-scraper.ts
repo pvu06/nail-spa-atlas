@@ -30,39 +30,34 @@ const SERVICE_PAGE_PATHS = [
 ];
 
 /**
- * Service keywords to look for
+ * SIMPLIFIED: Just look for these keywords near prices
  */
 const SERVICE_KEYWORDS = {
-  gel: ["gel manicure", "gel polish", "gel nails", "gel color", "shellac"],
-  pedicure: ["pedicure", "spa pedicure", "deluxe pedicure", "classic pedicure", "basic pedicure"],
-  acrylic: ["acrylic full set", "full set", "acrylic nails", "nail extensions", "acrylics", "acrylic set"],
+  gel: ["gel"],
+  pedicure: ["pedicure", "pedi"],
+  acrylic: ["acrylic", "acrylics"],
 };
 
 /**
- * Keywords that indicate a price is NOT for the main service (to exclude)
+ * ONLY exclude very specific non-services (be MUCH more permissive)
  */
 const EXCLUDE_KEYWORDS = [
-  "removal",
-  "repair",
-  "fill",
-  "refill",
-  "add-on",
-  "addon",
-  "additional",
-  "extra",
-  "soak off",
-  "change",
+  "removal only",
+  "soak off only",
+  "repair only",
   "per nail",
   "each nail",
+  "add-on",
+  "addon",
 ];
 
 /**
- * Realistic price ranges for each service type (slightly relaxed to capture more)
+ * VERY RELAXED price ranges (capture almost everything)
  */
 const PRICE_RANGES = {
-  gel: { min: 20, max: 90 },         // Gel manicure typically $30-$60 (relaxed to $20-90)
-  pedicure: { min: 25, max: 140 },   // Pedicure typically $35-$90 (relaxed to $25-140)
-  acrylic: { min: 35, max: 200 },    // Full acrylic set typically $50-$120 (relaxed to $35-200)
+  gel: { min: 15, max: 100 },
+  pedicure: { min: 20, max: 150 },
+  acrylic: { min: 30, max: 250 },
 };
 
 /**
@@ -175,7 +170,7 @@ export async function scrapeCompetitorPrices(
         if (!success) continue;
 
         // Wait for any dynamic content (longer for social media)
-        await new Promise(resolve => setTimeout(resolve, isFacebook || isInstagram ? 3000 : 2000));
+        await new Promise(resolve => setTimeout(resolve, isFacebook || isInstagram ? 4000 : 3000));
 
         // CLICK "SEE MORE" / "LOAD MORE" / "VIEW ALL" BUTTONS
         if (!isFacebook && !isInstagram) {
@@ -329,185 +324,88 @@ function median(numbers: number[]): number {
 }
 
 /**
- * ULTRA AGGRESSIVE: Extract ALL possible services from page
+ * SUPER SIMPLE: Just find prices near service keywords (like a human would)
  */
 async function extractAllServices(page: any, html: string, url: string): Promise<ServicePrice[]> {
   const services: ServicePrice[] = [];
   const seen = new Set<string>();
 
-  // METHOD 1: Parse visible text with Puppeteer
+  // DEAD SIMPLE METHOD: Get all text, split by lines, find patterns
   try {
-    const visibleServices = await page.evaluate(() => {
-      const results: any[] = [];
-      const elements = document.querySelectorAll("*");
-      
-      elements.forEach((el: any) => {
-        const text = el.innerText || el.textContent;
-        if (!text || text.length > 300 || text.length < 5) return;
-
-        // Look for price patterns
-        const priceRegex = /\$\s*(\d{2,3}(?:\.\d{2})?)/g;
-        const matches = text.match(priceRegex);
-        
-        if (matches && matches.length > 0) {
-          // Check if text contains service keywords
-          const lower = text.toLowerCase();
-          if (lower.includes("gel") || lower.includes("pedicure") || 
-              lower.includes("acrylic") || lower.includes("manicure") ||
-              lower.includes("nails")) {
-            results.push({
-              text: text.trim(),
-              prices: matches
-            });
-          }
-        }
-      });
-      
-      return results;
-    });
-
-    console.log(`    🔍 METHOD 1: Found ${visibleServices.length} elements with prices`);
-
-    for (const item of visibleServices) {
-      const textLower = item.text.toLowerCase();
-      
-      // Skip if it contains exclude keywords (fill, removal, etc.)
-      if (EXCLUDE_KEYWORDS.some(kw => textLower.includes(kw))) {
-        continue;
-      }
-
-      const prices = extractPrices(item.text);
-      if (prices.length === 0) continue;
-
-      const serviceType = detectServiceType(item.text);
-      if (serviceType === "other") continue;
-
-      // Validate price against realistic ranges
-      const priceRange = PRICE_RANGES[serviceType as keyof typeof PRICE_RANGES];
-      const validPrices = priceRange 
-        ? prices.filter(p => p >= priceRange.min && p <= priceRange.max)
-        : prices.filter(p => p >= 20 && p <= 250);
-      
-      if (validPrices.length === 0) continue;
-
-      const key = `${serviceType}-${validPrices[0]}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      services.push({
-        serviceName: item.text.substring(0, 80).trim(),
-        serviceType,
-        price: validPrices[0],
-        confidence: 0.8,
-        source: "puppeteer-eval"
-      });
-    }
-  } catch (error: any) {
-    console.log(`    ⚠️  METHOD 1 failed: ${error.message}`);
-  }
-
-  // METHOD 2: Cheerio parsing (tables, lists, divs)
-  const $ = cheerio.load(html);
-  
-  // Find all elements that might contain services
-  const selectors = [
-    "table tr",
-    "ul li",
-    ".service",
-    ".price-item",
-    ".menu-item",
-    ".price",
-    "[class*='service']",
-    "[class*='price']",
-    "[class*='menu']",
-    "div[class*='item']",
-  ];
-
-  selectors.forEach(selector => {
-    $(selector).each((_, element) => {
-      const text = $(element).text().trim();
-      const textLower = text.toLowerCase();
-      
-      if (text.length < 10 || text.length > 300) return;
-
-      // Skip exclude keywords
-      if (EXCLUDE_KEYWORDS.some(kw => textLower.includes(kw))) return;
-
-      const prices = extractPrices(text);
-      if (prices.length === 0) return;
-
-      const serviceType = detectServiceType(text);
-      if (serviceType === "other") return;
-
-      // Validate price against realistic ranges
-      const priceRange = PRICE_RANGES[serviceType as keyof typeof PRICE_RANGES];
-      const validPrices = priceRange 
-        ? prices.filter(p => p >= priceRange.min && p <= priceRange.max)
-        : prices.filter(p => p >= 20 && p <= 250);
-      
-      if (validPrices.length === 0) return;
-
-      const key = `${serviceType}-${validPrices[0]}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-
-      services.push({
-        serviceName: text.substring(0, 80).trim(),
-        serviceType,
-        price: validPrices[0],
-        confidence: 0.7,
-        source: "cheerio"
-      });
-    });
-  });
-
-  console.log(`    🔍 METHOD 2: Cheerio found ${services.length - (services.filter(s => s.source === "puppeteer-eval").length)} more services`);
-
-  // METHOD 3: RAW text extraction (last resort)
-  if (services.length < 3) {
-    const plainText = $("body").text();
-    const lines = plainText.split("\n").map(l => l.trim()).filter(l => l.length > 10 && l.length < 200);
-
+    console.log(`    🔍 Extracting all text from page...`);
+    
+    const allText = await page.evaluate(() => document.body.innerText || document.body.textContent);
+    const lines = allText.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 5);
+    
+    console.log(`    📄 Found ${lines.length} lines of text to analyze`);
+    
+    // Look through each line for service + price patterns
     for (const line of lines) {
       const lineLower = line.toLowerCase();
       
-      // Skip exclude keywords
-      if (EXCLUDE_KEYWORDS.some(kw => lineLower.includes(kw))) continue;
-
-      const prices = extractPrices(line);
-      if (prices.length === 0) continue;
-
-      const serviceType = detectServiceType(line);
-      if (serviceType === "other") continue;
-
-      // Validate price against realistic ranges
-      const priceRange = PRICE_RANGES[serviceType as keyof typeof PRICE_RANGES];
-      const validPrices = priceRange 
-        ? prices.filter(p => p >= priceRange.min && p <= priceRange.max)
-        : prices.filter(p => p >= 20 && p <= 250);
+      // Skip lines that are clearly not services
+      if (line.length > 200) continue;
+      if (!lineLower.match(/\d/) || !lineLower.match(/[a-z]/i)) continue;
       
-      if (validPrices.length === 0) continue;
-
-      // Check if price is near service keyword (within same line)
-      const hasKeyword = Object.values(SERVICE_KEYWORDS).flat().some(kw => 
-        lineLower.includes(kw.toLowerCase())
-      );
-      if (!hasKeyword) continue;
-
-      const key = `${serviceType}-${validPrices[0]}`;
+      // Find ALL dollar amounts in this line
+      const priceMatches = line.match(/\$?\s*(\d{2,3})(?:\.\d{2})?/g);
+      if (!priceMatches) continue;
+      
+      // Check if line contains service keywords (VERY BROAD)
+      const hasGel = lineLower.includes('gel') || lineLower.includes('shellac') || 
+                     (lineLower.includes('color') && !lineLower.includes('acrylic'));
+      const hasPedicure = lineLower.includes('pedicure') || lineLower.includes('pedi') || 
+                          lineLower.includes('foot spa');
+      const hasAcrylic = lineLower.includes('acrylic') || lineLower.includes('full set') || 
+                         lineLower.includes('pink and white') || lineLower.includes('ombre') ||
+                         (lineLower.includes('fill') && !lineLower.includes('color fill'));
+      
+      if (!hasGel && !hasPedicure && !hasAcrylic) continue;
+      
+      // Only skip if it's ONLY removal/repair (not a real service)
+      const skipKeywords = ['removal only', 'repair only', 'soak off only', 'per nail', 'each nail', 'add-on'];
+      if (skipKeywords.some(kw => lineLower.includes(kw))) continue;
+      
+      // Allow "Acrylic Fill", "Color Fill" (these are valid services)
+      
+      // Extract the first valid price
+      let price = 0;
+      for (const match of priceMatches) {
+        const num = parseInt(match.replace(/\D/g, ''));
+        if (num >= 20 && num <= 200) {
+          price = num;
+          break;
+        }
+      }
+      
+      if (price === 0) continue;
+      
+      // Determine service type
+      let serviceType = 'other';
+      if (hasGel) serviceType = 'gel';
+      else if (hasPedicure) serviceType = 'pedicure';
+      else if (hasAcrylic) serviceType = 'acrylic';
+      
+      // Avoid duplicates
+      const key = `${serviceType}-${price}`;
       if (seen.has(key)) continue;
       seen.add(key);
-
+      
       services.push({
-        serviceName: line.substring(0, 80).trim(),
+        serviceName: line.substring(0, 80),
         serviceType,
-        price: validPrices[0],
-        confidence: 0.6,
-        source: "raw-text"
+        price,
+        confidence: 0.9,
+        source: "simple-text-scan"
       });
+      
+      console.log(`    ✅ Found: ${serviceType} - $${price} from "${line.substring(0, 40)}..."`);
     }
-
-    console.log(`    🔍 METHOD 3: Raw text found ${services.filter(s => s.source === "raw-text").length} services`);
+    
+    console.log(`    🎯 SIMPLE METHOD: Extracted ${services.length} services`);
+    
+  } catch (error: any) {
+    console.log(`    ⚠️  Simple extraction failed: ${error.message}`);
   }
 
   return services;
