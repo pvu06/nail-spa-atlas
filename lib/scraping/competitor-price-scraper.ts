@@ -66,6 +66,56 @@ const PRICE_RANGES = {
 };
 
 /**
+ * Click "See more" / "Load more" / "View all" buttons to expand content
+ */
+async function clickExpandButtons(page: any): Promise<void> {
+  try {
+    console.log(`  🖱️  Looking for expand buttons...`);
+    
+    const clicked = await page.evaluate(() => {
+      const keywords = [
+        'see more', 'load more', 'view all', 'show more', 'show all',
+        'more services', 'all services', 'expand', 'read more', 'view more'
+      ];
+      
+      let clickCount = 0;
+      const buttons = Array.from(document.querySelectorAll('button, a, span, div'));
+      
+      for (const element of buttons) {
+        const text = (element.textContent || '').toLowerCase().trim();
+        const ariaLabel = element.getAttribute('aria-label')?.toLowerCase() || '';
+        const combined = text + ' ' + ariaLabel;
+        
+        // Check if element contains any expand keyword
+        if (keywords.some(kw => combined.includes(kw))) {
+          // Make sure it's clickable
+          const el = element as HTMLElement;
+          if (el.offsetParent !== null) { // Element is visible
+            el.click();
+            clickCount++;
+            console.log(`Clicked: "${text}"`);
+            
+            // Don't click more than 3 buttons
+            if (clickCount >= 3) break;
+          }
+        }
+      }
+      
+      return clickCount;
+    });
+    
+    if (clicked > 0) {
+      console.log(`  ✅ Clicked ${clicked} expand button(s), waiting for content...`);
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for content to load
+    } else {
+      console.log(`  ℹ️  No expand buttons found`);
+    }
+  } catch (error: any) {
+    console.log(`  ⚠️  Button clicking failed: ${error.message}`);
+  }
+}
+
+/**
  * SUPER AGGRESSIVE price scraper
  */
 export async function scrapeCompetitorPrices(
@@ -86,6 +136,21 @@ export async function scrapeCompetitorPrices(
     return result;
   }
 
+  // FILTER OUT GOOGLE SEARCH URLS (not real websites)
+  const invalidUrlPatterns = [
+    'google.com/search',
+    'google.com/maps',
+    'facebook.com',
+    'instagram.com',
+    'yelp.com',
+    'yellowpages.com',
+  ];
+
+  if (invalidUrlPatterns.some(pattern => websiteUrl.includes(pattern))) {
+    console.log(`⚠️  Skipping invalid URL (${websiteUrl.includes('google.com') ? 'Google search' : 'social media'})`);
+    return result;
+  }
+
   let page;
   try {
     page = await createPage();
@@ -103,6 +168,9 @@ export async function scrapeCompetitorPrices(
 
         // Wait for any dynamic content
         await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // CLICK "SEE MORE" / "LOAD MORE" / "VIEW ALL" BUTTONS
+        await clickExpandButtons(page);
 
         const htmlContent = await page.content();
         console.log(`  ✅ Loaded: ${tryUrl} (${Math.round(htmlContent.length / 1024)}KB)`);
@@ -164,6 +232,9 @@ export async function scrapeCompetitorPrices(
             console.log(`  🔗 Following: "${item.text}" -> ${item.href}`);
             await navigateToUrl(page, item.href, 2);
             await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // CLICK "SEE MORE" BUTTONS
+            await clickExpandButtons(page);
 
             const htmlContent = await page.content();
             const services = await extractAllServices(page, htmlContent, item.href);
