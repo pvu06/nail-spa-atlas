@@ -160,20 +160,17 @@ export async function POST(request: NextRequest) {
         if (scrapedData && scrapedData.success) {
           console.log(`✅ Using scraped prices for ${comp.name}`);
           comp.samplePrices = {
-            gel: scrapedData.gel || comp.samplePrices.gel,
-            pedicure: scrapedData.pedicure || comp.samplePrices.pedicure,
-            acrylic: scrapedData.acrylic || comp.samplePrices.acrylic,
+            gel: scrapedData.gel || null,
+            pedicure: scrapedData.pedicure || null,
+            acrylic: scrapedData.acrylic || null,
           };
         } else {
-          // Fallback to estimated prices based on Google price level
-          console.log(`⚠️  No scraped prices for ${comp.name}, using estimates`);
-          const priceLevel = competitors.find(c => c.name === comp.name)?.priceRange || "$$";
-          const baseMultiplier = priceLevel === "$" ? 0.8 : priceLevel === "$$" ? 1.0 : priceLevel === "$$$" ? 1.2 : 1.4;
-          
+          // NO FAKE PRICES - Leave blank if we can't find real ones
+          console.log(`⚠️  No real prices found for ${comp.name}, leaving blank`);
           comp.samplePrices = {
-            gel: Math.round(35 * baseMultiplier),
-            pedicure: Math.round(40 * baseMultiplier),
-            acrylic: Math.round(55 * baseMultiplier),
+            gel: null,
+            pedicure: null,
+            acrylic: null,
           };
         }
       });

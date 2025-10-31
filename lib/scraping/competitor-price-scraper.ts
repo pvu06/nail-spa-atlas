@@ -75,7 +75,7 @@ export async function scrapeCompetitorPrices(
         if (!success) continue;
 
         // Wait for any dynamic content
-        await page.waitForTimeout(2000);
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         const htmlContent = await page.content();
         console.log(`  ✅ Loaded: ${tryUrl} (${Math.round(htmlContent.length / 1024)}KB)`);
@@ -104,7 +104,7 @@ export async function scrapeCompetitorPrices(
       console.log(`  🔗 Looking for service/pricing links on homepage...`);
       try {
         await navigateToUrl(page, websiteUrl, 3);
-        await page.waitForTimeout(1000);
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Find links containing service-related keywords
         const links = await page.evaluate(() => {
@@ -131,7 +131,7 @@ export async function scrapeCompetitorPrices(
           try {
             console.log(`  🔗 Following link: "${link.text}" -> ${link.href}`);
             await navigateToUrl(page, link.href, 3);
-            await page.waitForTimeout(2000);
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
             const htmlContent = await page.content();
             const services = await extractAllServices(page, htmlContent, link.href);
@@ -313,7 +313,7 @@ async function extractAllServices(page: any, html: string, url: string): Promise
       if (validPrices.length === 0) return;
 
       const key = `${serviceType}-${validPrices[0]}`;
-      if (seen.has(key)) continue;
+      if (seen.has(key)) return;
       seen.add(key);
 
       services.push({
