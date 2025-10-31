@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spa 3: JavaScript Load</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        h1 { color: #333; }
+        .service {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+        .service-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .price {
+            color: #28a745;
+            font-size: 1.2em;
+        }
+        #loading {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>✨ Elite Beauty Studio - JavaScript Prices</h1>
+    <p><em>Prices will appear in 3 seconds via JavaScript</em></p>
+    
+    <div id="loading">Loading prices...</div>
+    
+    <div id="pricesContainer"></div>
+    
+    <script>
+        // Simulate loading prices from an API after 3 seconds
+        setTimeout(function() {
+            document.getElementById('loading').style.display = 'none';
+            
+            const services = [
+                { name: 'Gel Manicure', price: '$40' },
+                { name: 'Royal Pedicure', price: '$65' },
+                { name: 'Acrylic Full Set', price: '$80' },
+                { name: 'Gel Polish', price: '$32' },
+                { name: 'Signature Pedicure', price: '$70' },
+                { name: 'Extension Set', price: '$110' }
+            ];
+            
+            const container = document.getElementById('pricesContainer');
+            services.forEach(service => {
+                const div = document.createElement('div');
+                div.className = 'service';
+                div.innerHTML = `
+                    <div class="service-name">${service.name}</div>
+                    <div class="price">${service.price}</div>
+                `;
+                container.appendChild(div);
+            });
+        }, 3000);
+    </script>
+    
+    <br><br>
+    <a href="index.html">← Back to Directory</a>
+</body>
+</html>
+

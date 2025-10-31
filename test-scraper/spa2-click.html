@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spa 2: Click to Reveal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        h1 { color: #333; }
+        .service {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+        .service-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .price {
+            color: #28a745;
+            font-size: 1.2em;
+        }
+        .hidden {
+            display: none;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>💎 Premium Nail Lounge - Click to Reveal</h1>
+    <p><em>Click "Book Now" to see our prices</em></p>
+    
+    <button id="bookBtn">Book Now</button>
+    
+    <div id="prices" class="hidden">
+        <div class="service">
+            <div class="service-name">Gel Manicure</div>
+            <div class="price">$42</div>
+        </div>
+        
+        <div class="service">
+            <div class="service-name">Luxury Pedicure</div>
+            <div class="price">$55</div>
+        </div>
+        
+        <div class="service">
+            <div class="service-name">Acrylic Full Set</div>
+            <div class="price">$75</div>
+        </div>
+        
+        <div class="service">
+            <div class="service-name">Gel Polish</div>
+            <div class="price">$35</div>
+        </div>
+        
+        <div class="service">
+            <div class="service-name">Spa Pedicure</div>
+            <div class="price">$60</div>
+        </div>
+        
+        <div class="service">
+            <div class="service-name">Extension Set</div>
+            <div class="price">$95</div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('bookBtn').addEventListener('click', function() {
+            document.getElementById('prices').classList.remove('hidden');
+            this.textContent = 'Prices Shown ✓';
+            this.style.background = '#28a745';
+        });
+    </script>
+    
+    <br><br>
+    <a href="index.html">← Back to Directory</a>
+</body>
+</html>
+

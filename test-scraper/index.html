@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Spa Directory</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .spa-card {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; }
+        a {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        a:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Spa Directory</h1>
+    <p>Testing scraper on 3 different price exposure patterns:</p>
+    
+    <div class="spa-card">
+        <h2>✅ Spa 1: Static Prices</h2>
+        <p>Prices visible directly in HTML on load</p>
+        <a href="spa1-static.html">View Spa 1</a>
+    </div>
+    
+    <div class="spa-card">
+        <h2>🖱️ Spa 2: Click-to-Reveal</h2>
+        <p>Prices hidden until "Book Now" button is clicked</p>
+        <a href="spa2-click.html">View Spa 2</a>
+    </div>
+    
+    <div class="spa-card">
+        <h2>⏱️ Spa 3: JavaScript Load</h2>
+        <p>Prices inserted via JavaScript 3 seconds after DOM load</p>
+        <a href="spa3-js.html">View Spa 3</a>
+    </div>
+</body>
+</html>
+
