@@ -1,5 +1,5 @@
 import { createPage, navigateToUrl, closeBrowser } from "./browser";
-import { extractServicesFromHtml, ServicePrice, extractPrices, detectServiceType } from "./price-extractor";
+import { ServicePrice, extractPrices, detectServiceType } from "./price-extractor";
 import * as cheerio from "cheerio";
 
 export interface ScrapedPrices {
@@ -13,142 +13,189 @@ export interface ScrapedPrices {
 }
 
 /**
- * Common URL patterns for service/pricing pages
+ * Extended URL patterns to try
  */
 const SERVICE_PAGE_PATHS = [
+  "",  // Homepage first
   "/services",
   "/pricing",
   "/menu",
   "/price-list",
   "/our-services",
   "/nail-services",
-  "",  // Sometimes pricing is on homepage
+  "/rates",
+  "/prices",
+  "/service-menu",
+  "/nail-menu",
 ];
 
 /**
- * Scrape prices from a competitor's website
+ * Service keywords to look for
+ */
+const SERVICE_KEYWORDS = {
+  gel: ["gel manicure", "gel polish", "gel nails", "gel color", "shellac"],
+  pedicure: ["pedicure", "spa pedicure", "deluxe pedicure", "classic pedicure", "basic pedicure"],
+  acrylic: ["acrylic", "full set", "acrylic nails", "acrylic full set", "nail extensions", "acrylics"],
+};
+
+/**
+ * SUPER AGGRESSIVE price scraper
  */
 export async function scrapeCompetitorPrices(
   websiteUrl: string,
   competitorName: string
 ): Promise<ScrapedPrices> {
-  console.log(`🔍 Scraping prices for: ${competitorName}`);
+  console.log(`\n🔍 Scraping prices for: ${competitorName}`);
   console.log(`🌐 Website: ${websiteUrl}`);
 
-  // Default result
   const result: ScrapedPrices = {
     success: false,
     confidence: 0,
     source: websiteUrl,
   };
 
-  // Skip if no valid website
   if (!websiteUrl || websiteUrl === "#" || !websiteUrl.startsWith("http")) {
-    console.log(`⚠️  No valid website URL for ${competitorName}`);
+    console.log(`⚠️  No valid website URL`);
     return result;
   }
 
   let page;
   try {
-    // Create browser page
     page = await createPage();
-
-    // Try different service page paths
-    let htmlContent = "";
+    let bestServices: ServicePrice[] = [];
     let successfulUrl = "";
 
+    // STEP 1: Try all URL patterns
     for (const path of SERVICE_PAGE_PATHS) {
       try {
-        const tryUrl = websiteUrl.endsWith("/") 
-          ? `${websiteUrl}${path}`.replace("//", "/")
-          : `${websiteUrl}${path}`;
-        
+        const tryUrl = path === "" ? websiteUrl : `${websiteUrl.replace(/\/$/, "")}${path}`;
         console.log(`  🔎 Trying: ${tryUrl}`);
         
-        const success = await navigateToUrl(page, tryUrl, 2);
-        if (success) {
-          htmlContent = await page.content();
+        const success = await navigateToUrl(page, tryUrl, 3);
+        if (!success) continue;
+
+        // Wait for any dynamic content
+        await page.waitForTimeout(2000);
+
+        const htmlContent = await page.content();
+        console.log(`  ✅ Loaded: ${tryUrl} (${Math.round(htmlContent.length / 1024)}KB)`);
+
+        // Extract services
+        const services = await extractAllServices(page, htmlContent, tryUrl);
+        console.log(`  📊 Found ${services.length} services with prices`);
+
+        if (services.length > bestServices.length) {
+          bestServices = services;
           successfulUrl = tryUrl;
-          console.log(`  ✅ Loaded: ${tryUrl}`);
-          
-          // If we find pricing keywords, stop searching
-          const lowerContent = htmlContent.toLowerCase();
-          if (
-            lowerContent.includes("$") &&
-            (lowerContent.includes("gel") || 
-             lowerContent.includes("pedicure") || 
-             lowerContent.includes("acrylic") ||
-             lowerContent.includes("manicure"))
-          ) {
-            console.log(`  💰 Found pricing information!`);
-            break;
-          }
         }
-      } catch (error) {
-        console.log(`  ❌ Failed: ${path}`);
-        continue;
+
+        // If we found good data, stop
+        if (services.length >= 3) {
+          console.log(`  ✨ Found enough services, stopping search`);
+          break;
+        }
+      } catch (error: any) {
+        console.log(`  ❌ Failed ${path}: ${error.message}`);
       }
     }
 
-    if (!htmlContent) {
-      console.log(`❌ Could not load any pages for ${competitorName}`);
+    // STEP 2: If no luck, try finding "Services" or "Pricing" links
+    if (bestServices.length === 0) {
+      console.log(`  🔗 Looking for service/pricing links on homepage...`);
+      try {
+        await navigateToUrl(page, websiteUrl, 3);
+        await page.waitForTimeout(1000);
+
+        // Find links containing service-related keywords
+        const links = await page.evaluate(() => {
+          const anchors = Array.from(document.querySelectorAll("a"));
+          return anchors
+            .map(a => ({
+              text: a.textContent?.toLowerCase() || "",
+              href: a.href,
+            }))
+            .filter(link => 
+              link.href &&
+              !link.href.includes("#") &&
+              (link.text.includes("service") || 
+               link.text.includes("price") || 
+               link.text.includes("pricing") ||
+               link.text.includes("menu"))
+            );
+        });
+
+        console.log(`  📌 Found ${links.length} potential service links`);
+
+        // Try the first 3 links
+        for (const link of links.slice(0, 3)) {
+          try {
+            console.log(`  🔗 Following link: "${link.text}" -> ${link.href}`);
+            await navigateToUrl(page, link.href, 3);
+            await page.waitForTimeout(2000);
+
+            const htmlContent = await page.content();
+            const services = await extractAllServices(page, htmlContent, link.href);
+            console.log(`  📊 Found ${services.length} services from link`);
+
+            if (services.length > bestServices.length) {
+              bestServices = services;
+              successfulUrl = link.href;
+            }
+
+            if (services.length >= 3) break;
+          } catch (error: any) {
+            console.log(`  ❌ Failed link: ${error.message}`);
+          }
+        }
+      } catch (error: any) {
+        console.log(`  ❌ Link following failed: ${error.message}`);
+      }
+    }
+
+    // Process results
+    if (bestServices.length === 0) {
+      console.log(`❌ No prices found for ${competitorName}`);
       return result;
     }
 
-    // Extract services using price-extractor
-    const extractedServices = extractServicesFromHtml(htmlContent, successfulUrl);
-    console.log(`  📊 Extracted ${extractedServices.length} services`);
-
-    if (extractedServices.length === 0) {
-      // Fallback: Try manual extraction with Cheerio
-      const manualServices = extractPricesManually(htmlContent);
-      console.log(`  🔧 Manual extraction found ${manualServices.length} services`);
-      extractedServices.push(...manualServices);
-    }
-
-    // Map services to gel/pedicure/acrylic
-    const gelServices = extractedServices.filter(s => 
-      s.serviceType === "gel" || s.serviceName.toLowerCase().includes("gel")
-    );
-    const pedicureServices = extractedServices.filter(s => 
-      s.serviceType === "pedicure" || s.serviceName.toLowerCase().includes("pedicure")
-    );
-    const acrylicServices = extractedServices.filter(s => 
-      s.serviceType === "acrylic" || s.serviceName.toLowerCase().includes("acrylic")
-    );
-
-    // Calculate average prices
-    result.gel = gelServices.length > 0 
-      ? Math.round(gelServices.reduce((sum, s) => sum + s.price, 0) / gelServices.length)
-      : undefined;
-    
-    result.pedicure = pedicureServices.length > 0
-      ? Math.round(pedicureServices.reduce((sum, s) => sum + s.price, 0) / pedicureServices.length)
-      : undefined;
-    
-    result.acrylic = acrylicServices.length > 0
-      ? Math.round(acrylicServices.reduce((sum, s) => sum + s.price, 0) / acrylicServices.length)
-      : undefined;
-
-    // Calculate confidence
-    const foundServices = [result.gel, result.pedicure, result.acrylic].filter(p => p !== undefined).length;
-    result.confidence = foundServices / 3; // 0-1 score based on how many we found
-    result.success = foundServices > 0;
-    result.allServices = extractedServices;
-
-    console.log(`✅ Scraped ${competitorName}:`, {
-      gel: result.gel,
-      pedicure: result.pedicure,
-      acrylic: result.acrylic,
-      confidence: result.confidence
+    console.log(`\n✅ Total services extracted: ${bestServices.length}`);
+    bestServices.forEach(s => {
+      console.log(`   - ${s.serviceName}: $${s.price} (${s.serviceType})`);
     });
 
-  } catch (error) {
-    console.error(`❌ Error scraping ${competitorName}:`, error);
+    // Map to gel/pedicure/acrylic
+    const gelServices = bestServices.filter(s => 
+      s.serviceType === "gel" || SERVICE_KEYWORDS.gel.some(kw => s.serviceName.toLowerCase().includes(kw))
+    );
+    const pedicureServices = bestServices.filter(s => 
+      s.serviceType === "pedicure" || SERVICE_KEYWORDS.pedicure.some(kw => s.serviceName.toLowerCase().includes(kw))
+    );
+    const acrylicServices = bestServices.filter(s => 
+      s.serviceType === "acrylic" || SERVICE_KEYWORDS.acrylic.some(kw => s.serviceName.toLowerCase().includes(kw))
+    );
+
+    // Use MEDIAN price (more representative than average)
+    result.gel = gelServices.length > 0 ? median(gelServices.map(s => s.price)) : undefined;
+    result.pedicure = pedicureServices.length > 0 ? median(pedicureServices.map(s => s.price)) : undefined;
+    result.acrylic = acrylicServices.length > 0 ? median(acrylicServices.map(s => s.price)) : undefined;
+
+    result.confidence = (gelServices.length > 0 ? 1 : 0) + (pedicureServices.length > 0 ? 1 : 0) + (acrylicServices.length > 0 ? 1 : 0);
+    result.confidence = result.confidence / 3;
+    result.success = result.confidence > 0;
+    result.source = successfulUrl;
+    result.allServices = bestServices;
+
+    console.log(`\n✅ Final results for ${competitorName}:`);
+    console.log(`   Gel: $${result.gel || "N/A"} (from ${gelServices.length} services)`);
+    console.log(`   Pedicure: $${result.pedicure || "N/A"} (from ${pedicureServices.length} services)`);
+    console.log(`   Acrylic: $${result.acrylic || "N/A"} (from ${acrylicServices.length} services)`);
+    console.log(`   Confidence: ${Math.round(result.confidence * 100)}%\n`);
+
+  } catch (error: any) {
+    console.error(`❌ Error scraping ${competitorName}:`, error.message);
   } finally {
-    // Clean up
     if (page) {
-      await page.close().catch(e => console.error("Error closing page:", e));
+      await page.close().catch(() => {});
     }
   }
 
@@ -156,41 +203,167 @@ export async function scrapeCompetitorPrices(
 }
 
 /**
- * Manual extraction fallback using Cheerio
+ * Calculate median
  */
-function extractPricesManually(html: string): ServicePrice[] {
-  const $ = cheerio.load(html);
+function median(numbers: number[]): number {
+  if (numbers.length === 0) return 0;
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
+    : Math.round(sorted[mid]);
+}
+
+/**
+ * ULTRA AGGRESSIVE: Extract ALL possible services from page
+ */
+async function extractAllServices(page: any, html: string, url: string): Promise<ServicePrice[]> {
   const services: ServicePrice[] = [];
+  const seen = new Set<string>();
 
-  // Look for common pricing table structures
-  $("table tr, ul li, .service, .price-item, .menu-item").each((_, element) => {
-    const text = $(element).text();
-    
-    // Skip if too short or too long
-    if (text.length < 10 || text.length > 200) return;
+  // METHOD 1: Parse visible text with Puppeteer
+  try {
+    const visibleServices = await page.evaluate(() => {
+      const results: any[] = [];
+      const elements = document.querySelectorAll("*");
+      
+      elements.forEach((el: any) => {
+        const text = el.innerText || el.textContent;
+        if (!text || text.length > 300 || text.length < 5) return;
 
-    // Look for price patterns
-    const priceMatches = text.match(/\$\s*(\d+(?:\.\d{2})?)/g);
-    if (!priceMatches || priceMatches.length === 0) return;
+        // Look for price patterns
+        const priceRegex = /\$\s*(\d{2,3}(?:\.\d{2})?)/g;
+        const matches = text.match(priceRegex);
+        
+        if (matches && matches.length > 0) {
+          // Check if text contains service keywords
+          const lower = text.toLowerCase();
+          if (lower.includes("gel") || lower.includes("pedicure") || 
+              lower.includes("acrylic") || lower.includes("manicure") ||
+              lower.includes("nails")) {
+            results.push({
+              text: text.trim(),
+              prices: matches
+            });
+          }
+        }
+      });
+      
+      return results;
+    });
 
-    // Detect service type
-    const serviceType = detectServiceType(text);
-    if (serviceType === "other") return;
+    console.log(`    🔍 METHOD 1: Found ${visibleServices.length} elements with prices`);
 
-    // Extract first price
-    const priceStr = priceMatches[0].replace("$", "").trim();
-    const price = parseFloat(priceStr);
+    for (const item of visibleServices) {
+      const prices = extractPrices(item.text);
+      if (prices.length === 0) continue;
 
-    if (price > 0 && price < 500) {
+      const serviceType = detectServiceType(item.text);
+      if (serviceType === "other") continue;
+
+      // Validate price range
+      const validPrices = prices.filter(p => p >= 20 && p <= 250);
+      if (validPrices.length === 0) continue;
+
+      const key = `${serviceType}-${validPrices[0]}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
       services.push({
-        serviceName: text.substring(0, 50).trim(),
+        serviceName: item.text.substring(0, 80).trim(),
         serviceType,
-        price,
-        confidence: 0.6,
-        source: "manual-extraction"
+        price: validPrices[0],
+        confidence: 0.8,
+        source: "puppeteer-eval"
       });
     }
+  } catch (error: any) {
+    console.log(`    ⚠️  METHOD 1 failed: ${error.message}`);
+  }
+
+  // METHOD 2: Cheerio parsing (tables, lists, divs)
+  const $ = cheerio.load(html);
+  
+  // Find all elements that might contain services
+  const selectors = [
+    "table tr",
+    "ul li",
+    ".service",
+    ".price-item",
+    ".menu-item",
+    ".price",
+    "[class*='service']",
+    "[class*='price']",
+    "[class*='menu']",
+    "div[class*='item']",
+  ];
+
+  selectors.forEach(selector => {
+    $(selector).each((_, element) => {
+      const text = $(element).text().trim();
+      if (text.length < 10 || text.length > 300) return;
+
+      const prices = extractPrices(text);
+      if (prices.length === 0) return;
+
+      const serviceType = detectServiceType(text);
+      if (serviceType === "other") return;
+
+      const validPrices = prices.filter(p => p >= 20 && p <= 250);
+      if (validPrices.length === 0) return;
+
+      const key = `${serviceType}-${validPrices[0]}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      services.push({
+        serviceName: text.substring(0, 80).trim(),
+        serviceType,
+        price: validPrices[0],
+        confidence: 0.7,
+        source: "cheerio"
+      });
+    });
   });
+
+  console.log(`    🔍 METHOD 2: Cheerio found ${services.length - (services.filter(s => s.source === "puppeteer-eval").length)} more services`);
+
+  // METHOD 3: RAW text extraction (last resort)
+  if (services.length < 3) {
+    const plainText = $("body").text();
+    const lines = plainText.split("\n").map(l => l.trim()).filter(l => l.length > 10 && l.length < 200);
+
+    for (const line of lines) {
+      const prices = extractPrices(line);
+      if (prices.length === 0) continue;
+
+      const serviceType = detectServiceType(line);
+      if (serviceType === "other") continue;
+
+      const validPrices = prices.filter(p => p >= 20 && p <= 250);
+      if (validPrices.length === 0) continue;
+
+      // Check if price is near service keyword (within same line)
+      const hasKeyword = Object.values(SERVICE_KEYWORDS).flat().some(kw => 
+        line.toLowerCase().includes(kw.toLowerCase())
+      );
+      if (!hasKeyword) continue;
+
+      const key = `${serviceType}-${validPrices[0]}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      services.push({
+        serviceName: line.substring(0, 80).trim(),
+        serviceType,
+        price: validPrices[0],
+        confidence: 0.6,
+        source: "raw-text"
+      });
+    }
+
+    console.log(`    🔍 METHOD 3: Raw text found ${services.filter(s => s.source === "raw-text").length} services`);
+  }
 
   return services;
 }

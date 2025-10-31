@@ -13,33 +13,38 @@ export interface ServicePrice {
 }
 
 /**
- * Service name patterns to detect service types
+ * Service name patterns to detect service types (EXPANDED)
  */
 export const SERVICE_PATTERNS = {
-  gel: /gel\s*(manicure|nails?|polish|color)/i,
-  pedicure: /pedicure|foot\s*spa|foot\s*treatment/i,
-  acrylic: /acrylic|full\s*set|extensions?/i,
-  dip: /dip\s*powder|dipping/i,
-  manicure: /manicure|mani(?![cp])/i,
+  gel: /gel\s*(manicure|mani|nails?|polish|color)?|shellac|cnd|soak\s*off/i,
+  pedicure: /pedicure|pedi|foot\s*(spa|treatment|care|massage)|spa\s*pedi/i,
+  acrylic: /acrylic|full\s*set|extensions?|pink\s*&\s*white|sculpt|tips/i,
+  dip: /dip\s*powder|dipping|sns|powder\s*gel/i,
+  manicure: /manicure|mani(?![cp])|basic\s*mani|classic\s*mani/i,
   waxing: /waxing|wax|hair\s*removal/i,
   massage: /massage|reflexology/i,
-  "gel-removal": /gel\s*removal|removal/i,
-  "nail-art": /nail\s*art|design|custom/i,
-  shellac: /shellac|cnd/i,
+  "gel-removal": /gel\s*removal|soak\s*off|removal/i,
+  "nail-art": /nail\s*art|design|custom|decal|crystal|rhinestone/i,
 };
 
 /**
- * Price patterns to extract prices from text
+ * Price patterns to extract prices from text (EXPANDED)
  */
 export const PRICE_PATTERNS = [
   // $50 or $50.00
   /\$\s*(\d+(?:\.\d{2})?)/g,
-  // $40-$60 or $40 - $60
-  /\$\s*(\d+(?:\.\d{2})?)\s*-\s*\$?\s*(\d+(?:\.\d{2})?)/g,
+  // $40-$60 or $40 - $60 or $40-60
+  /\$\s*(\d+(?:\.\d{2})?)\s*[-–]\s*\$?\s*(\d+(?:\.\d{2})?)/g,
   // 50 USD or 50.00 USD
   /(\d+(?:\.\d{2})?)\s*USD/gi,
-  // Price: 50
+  // Price: 50 or Price: $50
   /price:?\s*\$?\s*(\d+(?:\.\d{2})?)/gi,
+  // Starting at $50
+  /starting\s*(?:at|from)\s*\$?\s*(\d+(?:\.\d{2})?)/gi,
+  // 50.00 (standalone number that could be a price)
+  /\b(\d{2,3}\.\d{2})\b/g,
+  // From $50
+  /from\s*\$\s*(\d+(?:\.\d{2})?)/gi,
 ];
 
 /**
