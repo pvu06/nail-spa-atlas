@@ -127,12 +127,12 @@ export async function POST(request: NextRequest) {
       
       const competitors = competitorsWithScore.slice(0, competitorCount);
 
-      // 🤖 WEB SCRAPING: Extract real prices from competitor websites
-      console.log(`🤖 Starting web scraping for ${competitors.length} competitors...`);
+      // 🤖 SMART WEB SCRAPING: Multi-strategy approach
+      console.log(`🧠 Starting SMART web scraping for ${competitors.length} competitors...`);
       let scrapedPricesMap = new Map();
       
       try {
-        const { batchScrapeCompetitors } = await import("@/lib/scraping/competitor-price-scraper");
+        const { batchSmartScrape } = await import("@/lib/scraping/smart-price-scraper");
         
         const scrapingTargets = competitors
           .filter(comp => comp.website && comp.website !== "#")
@@ -144,14 +144,14 @@ export async function POST(request: NextRequest) {
         console.log(`🎯 ${scrapingTargets.length} competitors have websites to scrape`);
         
         if (scrapingTargets.length > 0) {
-          scrapedPricesMap = await batchScrapeCompetitors(scrapingTargets, 3);
-          console.log(`✅ Web scraping completed: ${scrapedPricesMap.size} results`);
+          scrapedPricesMap = await batchSmartScrape(scrapingTargets, 3);
+          console.log(`✅ SMART scraping completed: ${scrapedPricesMap.size} results`);
         } else {
           console.log(`⚠️  No websites to scrape`);
         }
       } catch (scrapingError) {
-        console.error("❌ Web scraping failed, falling back to estimates:", scrapingError);
-        // Continue with estimated prices if scraping fails
+        console.error("❌ SMART scraping failed:", scrapingError);
+        // Continue without prices
       }
       
       // Merge scraped prices into competitors
