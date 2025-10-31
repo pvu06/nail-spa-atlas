@@ -208,9 +208,13 @@ async function tryTraditionalPages(page: any, websiteUrl: string): Promise<Servi
  */
 async function extractFromByChronos(page: any): Promise<ServicePrice[]> {
   try {
+    console.log(`    🔍 Extracting from byChronos...`);
+    
     const services = await page.evaluate(() => {
       const results: any[] = [];
       const buttons = Array.from(document.querySelectorAll("button"));
+      
+      console.log(`Found ${buttons.length} buttons total`);
       
       buttons.forEach((button: any) => {
         const text = button.textContent || "";
@@ -226,6 +230,7 @@ async function extractFromByChronos(page: any): Promise<ServicePrice[]> {
           else if (lower.includes("acrylic") || lower.includes("uv gel") || lower.includes("extension")) type = "acrylic";
           
           if (type !== "other" && price >= 15 && price <= 250) {
+            console.log(`✅ Found: ${text.substring(0, 50)} → $${price}`);
             results.push({
               serviceName: text.split("$")[0].trim(),
               serviceType: type,
@@ -240,81 +245,114 @@ async function extractFromByChronos(page: any): Promise<ServicePrice[]> {
       return results;
     });
 
+    console.log(`    📊 byChronos: Extracted ${services.length} services`);
     return services;
-  } catch (error) {
+  } catch (error: any) {
+    console.log(`    ❌ byChronos extraction failed: ${error.message}`);
     return [];
   }
 }
 
 /**
- * Extract from Vagaro booking system
+ * Extract from Vagaro booking system (ULTRA AGGRESSIVE)
  */
 async function extractFromVagaro(page: any): Promise<ServicePrice[]> {
   try {
+    console.log(`    🔍 Extracting from Vagaro...`);
+    
     const services = await page.evaluate(() => {
       const results: any[] = [];
-      const allText = document.body.innerText || "";
-      const lines = allText.split("\n");
+      const allText = document.body.innerText || document.body.textContent || "";
+      const lines = allText.split("\n").filter(l => l.trim().length > 0);
       
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        const priceMatch = line.match(/\$(\d+)/);
+      console.log(`Found ${lines.length} lines of text`);
+      
+      const seen = new Set();
+      let priceCount = 0;
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.length < 5 || trimmed.length > 200) continue;
         
-        if (priceMatch) {
-          const price = parseInt(priceMatch[1]);
-          const lower = line.toLowerCase();
+        // Look for ANY price
+        const priceMatch = trimmed.match(/\$\s*(\d{2,3})/);
+        if (!priceMatch) continue;
+        
+        priceCount++;
+        const price = parseInt(priceMatch[1]);
+        if (price < 15 || price > 250) continue;
+        
+        const lower = trimmed.toLowerCase();
+        
+        // Be VERY permissive
+        let type = "other";
+        if (lower.includes("gel") || lower.includes("shellac")) type = "gel";
+        else if (lower.includes("pedicure") || lower.includes("pedi") || lower.includes("foot")) type = "pedicure";
+        else if (lower.includes("acrylic") || lower.includes("full set") || lower.includes("extension") || lower.includes("tips")) type = "acrylic";
+        
+        if (type !== "other") {
+          const key = `${type}-${price}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
           
-          let type = "other";
-          if (lower.includes("gel")) type = "gel";
-          else if (lower.includes("pedicure")) type = "pedicure";
-          else if (lower.includes("acrylic") || lower.includes("full set")) type = "acrylic";
+          console.log(`✅ Found: "${trimmed.substring(0, 50)}" → ${type} $${price}`);
           
-          if (type !== "other" && price >= 15 && price <= 250) {
-            results.push({
-              serviceName: line.split("$")[0].trim(),
-              serviceType: type,
-              price,
-              confidence: 0.9,
-              source: "vagaro"
-            });
-          }
+          results.push({
+            serviceName: trimmed.split("$")[0].trim().substring(0, 60),
+            serviceType: type,
+            price,
+            confidence: 0.85,
+            source: "vagaro"
+          });
         }
       }
       
+      console.log(`Found ${priceCount} total prices, ${results.length} matched services`);
       return results;
     });
 
+    console.log(`    📊 Vagaro: Extracted ${services.length} services`);
     return services;
-  } catch (error) {
+  } catch (error: any) {
+    console.log(`    ❌ Vagaro extraction failed: ${error.message}`);
     return [];
   }
 }
 
 /**
- * Simple extraction (fallback)
+ * Simple extraction (fallback) - ULTRA AGGRESSIVE
  */
 async function extractSimple(page: any): Promise<ServicePrice[]> {
   try {
+    console.log(`    🔍 Using simple extraction...`);
+    
     const services = await page.evaluate(() => {
       const results: any[] = [];
-      const allText = document.body.innerText || "";
-      const lines = allText.split("\n").map(l => l.trim()).filter(l => l.length > 5 && l.length < 200);
+      const allText = document.body.innerText || document.body.textContent || "";
+      const lines = allText.split("\n").map(l => l.trim()).filter(l => l.length > 3);
+      
+      console.log(`Analyzing ${lines.length} lines of text`);
       
       const seen = new Set<string>();
+      let totalPrices = 0;
       
       for (const line of lines) {
+        if (line.length > 300) continue; // Skip very long lines
+        
         const lower = line.toLowerCase();
         const priceMatch = line.match(/\$\s*(\d{2,3})/);
         
         if (!priceMatch) continue;
+        totalPrices++;
         
         const price = parseInt(priceMatch[1]);
         if (price < 15 || price > 250) continue;
         
-        // Detect service type
-        const hasGel = lower.includes("gel") || lower.includes("shellac");
-        const hasPedi = lower.includes("pedicure") || lower.includes("pedi");
-        const hasAcrylic = lower.includes("acrylic") || lower.includes("full set") || lower.includes("extension");
+        // VERY permissive detection
+        const hasGel = lower.includes("gel") || lower.includes("shellac") || lower.includes("polish");
+        const hasPedi = lower.includes("pedicure") || lower.includes("pedi") || lower.includes("foot");
+        const hasAcrylic = lower.includes("acrylic") || lower.includes("full set") || lower.includes("extension") || 
+                           lower.includes("tips") || lower.includes("sculpt") || lower.includes("pink") || lower.includes("ombre");
         
         if (!hasGel && !hasPedi && !hasAcrylic) continue;
         
@@ -327,6 +365,8 @@ async function extractSimple(page: any): Promise<ServicePrice[]> {
         if (seen.has(key)) continue;
         seen.add(key);
         
+        console.log(`✅ Found: "${line.substring(0, 50)}" → ${type} $${price}`);
+        
         results.push({
           serviceName: line.substring(0, 60),
           serviceType: type,
@@ -336,11 +376,14 @@ async function extractSimple(page: any): Promise<ServicePrice[]> {
         });
       }
       
+      console.log(`Found ${totalPrices} total prices, ${results.length} matched services`);
       return results;
     });
 
+    console.log(`    📊 Simple: Extracted ${services.length} services`);
     return services;
-  } catch (error) {
+  } catch (error: any) {
+    console.log(`    ❌ Simple extraction failed: ${error.message}`);
     return [];
   }
 }
