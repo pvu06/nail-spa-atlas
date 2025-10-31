@@ -36,25 +36,16 @@ export async function createPage(): Promise<Page> {
   const browser = await getBrowser();
   const page = await browser.newPage();
   
-  // BLOCK ADS AND TRACKERS (fixes ERR_BLOCKED_BY_CLIENT)
+  // BLOCK ONLY HEAVY RESOURCES (keep essential content)
   await page.setRequestInterception(true);
   page.on('request', (request) => {
-    const url = request.url();
     const resourceType = request.resourceType();
     
-    // Block ads, trackers, analytics, and other bloat
+    // Only block truly unnecessary resources
     if (
       resourceType === 'image' || 
       resourceType === 'media' ||
-      resourceType === 'font' ||
-      resourceType === 'stylesheet' ||
-      url.includes('google-analytics') ||
-      url.includes('googletagmanager') ||
-      url.includes('facebook') ||
-      url.includes('doubleclick') ||
-      url.includes('analytics') ||
-      url.includes('ads') ||
-      url.includes('tracking')
+      resourceType === 'font'
     ) {
       request.abort();
     } else {

@@ -136,19 +136,23 @@ export async function scrapeCompetitorPrices(
     return result;
   }
 
-  // FILTER OUT GOOGLE SEARCH URLS (not real websites)
+  // ONLY filter out Google search/maps URLs (not real websites)
   const invalidUrlPatterns = [
     'google.com/search',
     'google.com/maps',
-    'facebook.com',
-    'instagram.com',
-    'yelp.com',
-    'yellowpages.com',
   ];
 
   if (invalidUrlPatterns.some(pattern => websiteUrl.includes(pattern))) {
-    console.log(`⚠️  Skipping invalid URL (${websiteUrl.includes('google.com') ? 'Google search' : 'social media'})`);
+    console.log(`⚠️  Skipping Google search/maps URL`);
     return result;
+  }
+
+  // Special handling for social media (Facebook, Instagram) - these are valid but need different approach
+  const isFacebook = websiteUrl.includes('facebook.com');
+  const isInstagram = websiteUrl.includes('instagram.com');
+  
+  if (isFacebook || isInstagram) {
+    console.log(`  📱 Social media page detected, using simplified extraction`);
   }
 
   let page;
@@ -157,8 +161,12 @@ export async function scrapeCompetitorPrices(
     let bestServices: ServicePrice[] = [];
     let successfulUrl = "";
 
-    // STEP 1: Try all URL patterns
-    for (const path of SERVICE_PAGE_PATHS) {
+    // STEP 1: Try different approaches based on URL type
+    const pathsToTry = (isFacebook || isInstagram) 
+      ? [""] // Social media: just try the main page
+      : SERVICE_PAGE_PATHS; // Regular websites: try all paths
+
+    for (const path of pathsToTry) {
       try {
         const tryUrl = path === "" ? websiteUrl : `${websiteUrl.replace(/\/$/, "")}${path}`;
         console.log(`  🔎 Trying: ${tryUrl}`);
@@ -166,11 +174,13 @@ export async function scrapeCompetitorPrices(
         const success = await navigateToUrl(page, tryUrl, 3);
         if (!success) continue;
 
-        // Wait for any dynamic content
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Wait for any dynamic content (longer for social media)
+        await new Promise(resolve => setTimeout(resolve, isFacebook || isInstagram ? 3000 : 2000));
 
         // CLICK "SEE MORE" / "LOAD MORE" / "VIEW ALL" BUTTONS
-        await clickExpandButtons(page);
+        if (!isFacebook && !isInstagram) {
+          await clickExpandButtons(page);
+        }
 
         const htmlContent = await page.content();
         console.log(`  ✅ Loaded: ${tryUrl} (${Math.round(htmlContent.length / 1024)}KB)`);
@@ -185,7 +195,7 @@ export async function scrapeCompetitorPrices(
         }
 
         // If we found good data, stop
-        if (services.length >= 3) {
+        if (services.length >= 2) {
           console.log(`  ✨ Found enough services, stopping search`);
           break;
         }
@@ -194,8 +204,8 @@ export async function scrapeCompetitorPrices(
       }
     }
 
-    // STEP 2: If no luck, try finding and clicking buttons/links
-    if (bestServices.length < 3) {
+    // STEP 2: If no luck, try finding and clicking buttons/links (skip for social media)
+    if (bestServices.length < 2 && !isFacebook && !isInstagram) {
       console.log(`  🔗 Looking for service/pricing/menu links and buttons...`);
       try {
         await navigateToUrl(page, websiteUrl, 3);
