@@ -248,6 +248,16 @@ async function extractFromByChronos(page: any): Promise<ServicePrice[]> {
     if (extractionResult.services.length > 0) {
       extractionResult.debug.foundServices.forEach((s: string) => console.log(`      ✅ ${s}`));
     }
+    
+    // Fallback to line-pair if buttons don't work
+    if (extractionResult.services.length < 2) {
+      console.log(`    🔄 Trying line-pair extraction fallback...`);
+      const fallbackServices = await extractSimpleLinePair(page);
+      if (fallbackServices.length > extractionResult.services.length) {
+        return fallbackServices;
+      }
+    }
+    
     return extractionResult.services;
   } catch (error: any) {
     console.log(`    ❌ byChronos extraction failed: ${error.message}`);
@@ -309,9 +319,73 @@ async function extractFromVagaro(page: any): Promise<ServicePrice[]> {
     });
 
     console.log(`    📊 Vagaro: Found ${extractionResult.debug.totalLines} lines, ${extractionResult.debug.totalPrices} prices, ${extractionResult.services.length} matched`);
+    
+    // Fallback to line-pair if needed
+    if (extractionResult.services.length < 2) {
+      console.log(`    🔄 Trying line-pair extraction fallback...`);
+      const fallbackServices = await extractSimpleLinePair(page);
+      if (fallbackServices.length > extractionResult.services.length) {
+        return fallbackServices;
+      }
+    }
+    
     return extractionResult.services;
   } catch (error: any) {
     console.log(`    ❌ Vagaro extraction failed: ${error.message}`);
+    return [];
+  }
+}
+
+/**
+ * LINE-PAIR EXTRACTION (VALIDATED - Works on all 3 test cases!)
+ * Service names and prices are on SEPARATE lines, need to check line + previous line
+ */
+async function extractSimpleLinePair(page: any): Promise<ServicePrice[]> {
+  try {
+    const extractionResult = await page.evaluate(() => {
+      const allText = document.body.innerText || document.body.textContent || "";
+      const lines = allText.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+      
+      const results: any[] = [];
+      
+      // Check current line + previous line together
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const prevLine = i > 0 ? lines[i - 1] : "";
+        const combined = (prevLine + " " + line).toLowerCase();
+        
+        // Find price in current line
+        const priceMatch = line.match(/\$\s*(\d{2,3})/);
+        if (!priceMatch) continue;
+        
+        const price = parseInt(priceMatch[1]);
+        if (price < 15 || price > 250) continue;
+        
+        // Check if combined has service keyword
+        let type = null;
+        if (combined.includes("gel") || combined.includes("shellac") || combined.includes("polish")) type = "gel";
+        else if (combined.includes("pedicure") || combined.includes("pedi") || combined.includes("foot")) type = "pedicure";
+        else if (combined.includes("acrylic") || combined.includes("full set") || combined.includes("extension") || 
+                 combined.includes("tips") || combined.includes("sculpt") || combined.includes("pink") || combined.includes("ombre")) type = "acrylic";
+        
+        if (type) {
+          results.push({
+            serviceName: prevLine || line,
+            serviceType: type,
+            price,
+            confidence: 0.9,
+            source: "line-pair"
+          });
+        }
+      }
+      
+      return { services: results, debug: { totalLines: lines.length } };
+    });
+
+    console.log(`    📊 Line-pair: Found ${extractionResult.debug.totalLines} lines, extracted ${extractionResult.services.length} services`);
+    return extractionResult.services;
+  } catch (error: any) {
+    console.log(`    ❌ Line-pair extraction failed: ${error.message}`);
     return [];
   }
 }
@@ -373,6 +447,16 @@ async function extractSimple(page: any): Promise<ServicePrice[]> {
     });
 
     console.log(`    📊 Simple: Found ${extractionResult.debug.totalLines} lines, ${extractionResult.debug.totalPrices} prices, ${extractionResult.services.length} matched`);
+    
+    // ALWAYS try line-pair as last resort (VALIDATED approach)
+    if (extractionResult.services.length < 2) {
+      console.log(`    🔄 Trying validated line-pair extraction...`);
+      const fallbackServices = await extractSimpleLinePair(page);
+      if (fallbackServices.length > extractionResult.services.length) {
+        return fallbackServices;
+      }
+    }
+    
     return extractionResult.services;
   } catch (error: any) {
     console.log(`    ❌ Simple extraction failed: ${error.message}`);
