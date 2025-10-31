@@ -57,12 +57,12 @@ const EXCLUDE_KEYWORDS = [
 ];
 
 /**
- * Realistic price ranges for each service type
+ * Realistic price ranges for each service type (slightly relaxed to capture more)
  */
 const PRICE_RANGES = {
-  gel: { min: 25, max: 80 },         // Gel manicure typically $30-$60
-  pedicure: { min: 30, max: 120 },   // Pedicure typically $35-$90
-  acrylic: { min: 40, max: 180 },    // Full acrylic set typically $50-$120
+  gel: { min: 20, max: 90 },         // Gel manicure typically $30-$60 (relaxed to $20-90)
+  pedicure: { min: 25, max: 140 },   // Pedicure typically $35-$90 (relaxed to $25-140)
+  acrylic: { min: 35, max: 200 },    // Full acrylic set typically $50-$120 (relaxed to $35-200)
 };
 
 /**
@@ -126,52 +126,58 @@ export async function scrapeCompetitorPrices(
       }
     }
 
-    // STEP 2: If no luck, try finding "Services" or "Pricing" links
-    if (bestServices.length === 0) {
-      console.log(`  🔗 Looking for service/pricing links on homepage...`);
+    // STEP 2: If no luck, try finding and clicking buttons/links
+    if (bestServices.length < 3) {
+      console.log(`  🔗 Looking for service/pricing/menu links and buttons...`);
       try {
         await navigateToUrl(page, websiteUrl, 3);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // Find links containing service-related keywords
-        const links = await page.evaluate(() => {
-          const anchors = Array.from(document.querySelectorAll("a"));
-          return anchors
-            .map(a => ({
-              text: a.textContent?.toLowerCase() || "",
-              href: a.href,
-            }))
-            .filter(link => 
-              link.href &&
-              !link.href.includes("#") &&
-              (link.text.includes("service") || 
-               link.text.includes("price") || 
-               link.text.includes("pricing") ||
-               link.text.includes("menu"))
-            );
+        // Find ALL links and buttons with relevant keywords
+        const linksAndButtons = await page.evaluate(() => {
+          const elements = Array.from(document.querySelectorAll("a, button"));
+          return elements
+            .map(el => {
+              const text = (el.textContent?.toLowerCase() || "").trim();
+              const href = (el as HTMLAnchorElement).href || el.getAttribute('onclick') || "";
+              return { text, href };
+            })
+            .filter(item => {
+              const combined = (item.text + " " + item.href).toLowerCase();
+              return (
+                combined.includes("service") || 
+                combined.includes("price") || 
+                combined.includes("pricing") ||
+                combined.includes("menu") ||
+                combined.includes("book") ||
+                combined.includes("rates") ||
+                combined.includes("appointment")
+              ) && item.href && !item.href.includes("#");
+            });
         });
 
-        console.log(`  📌 Found ${links.length} potential service links`);
+        console.log(`  📌 Found ${linksAndButtons.length} potential links/buttons`);
 
-        // Try the first 3 links
-        for (const link of links.slice(0, 3)) {
+        // Try the first 5 links
+        for (const item of linksAndButtons.slice(0, 5)) {
           try {
-            console.log(`  🔗 Following link: "${link.text}" -> ${link.href}`);
-            await navigateToUrl(page, link.href, 3);
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log(`  🔗 Following: "${item.text}" -> ${item.href}`);
+            await navigateToUrl(page, item.href, 2);
+            await new Promise(resolve => setTimeout(resolve, 1500));
 
             const htmlContent = await page.content();
-            const services = await extractAllServices(page, htmlContent, link.href);
+            const services = await extractAllServices(page, htmlContent, item.href);
             console.log(`  📊 Found ${services.length} services from link`);
 
             if (services.length > bestServices.length) {
               bestServices = services;
-              successfulUrl = link.href;
+              successfulUrl = item.href;
             }
 
-            if (services.length >= 3) break;
+            // If we have at least 2 services, it's good enough
+            if (services.length >= 2) break;
           } catch (error: any) {
-            console.log(`  ❌ Failed link: ${error.message}`);
+            console.log(`  ❌ Failed: ${error.message}`);
           }
         }
       } catch (error: any) {

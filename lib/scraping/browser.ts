@@ -36,6 +36,32 @@ export async function createPage(): Promise<Page> {
   const browser = await getBrowser();
   const page = await browser.newPage();
   
+  // BLOCK ADS AND TRACKERS (fixes ERR_BLOCKED_BY_CLIENT)
+  await page.setRequestInterception(true);
+  page.on('request', (request) => {
+    const url = request.url();
+    const resourceType = request.resourceType();
+    
+    // Block ads, trackers, analytics, and other bloat
+    if (
+      resourceType === 'image' || 
+      resourceType === 'media' ||
+      resourceType === 'font' ||
+      resourceType === 'stylesheet' ||
+      url.includes('google-analytics') ||
+      url.includes('googletagmanager') ||
+      url.includes('facebook') ||
+      url.includes('doubleclick') ||
+      url.includes('analytics') ||
+      url.includes('ads') ||
+      url.includes('tracking')
+    ) {
+      request.abort();
+    } else {
+      request.continue();
+    }
+  });
+  
   // Set random user agent
   const userAgent = new UserAgent({ deviceCategory: "desktop" });
   await page.setUserAgent(userAgent.toString());
@@ -63,27 +89,51 @@ export async function closeBrowser(): Promise<void> {
 }
 
 /**
- * Navigate to URL with retry logic
+ * Navigate to URL with retry logic and multiple strategies
  */
 export async function navigateToUrl(
   page: Page,
   url: string,
   retries: number = 3
 ): Promise<boolean> {
+  // Try different strategies
+  const strategies = [
+    { waitUntil: "domcontentloaded" as const, timeout: 15000 }, // Fastest
+    { waitUntil: "networkidle0" as const, timeout: 20000 },     // Medium
+    { waitUntil: "load" as const, timeout: 25000 },             // Backup
+  ];
+
   for (let i = 0; i < retries; i++) {
+    const strategy = strategies[i] || strategies[0];
+    
     try {
-      await page.goto(url, {
-        waitUntil: "networkidle2",
-        timeout: 30000,
-      });
+      await page.goto(url, strategy);
       return true;
-    } catch (error) {
-      console.error(`Navigation attempt ${i + 1} failed:`, error);
+    } catch (error: any) {
+      console.error(`Navigation attempt ${i + 1} failed:`, error.message);
+      
+      // If it's ERR_BLOCKED_BY_CLIENT, try with a different URL scheme
+      if (error.message?.includes('ERR_BLOCKED_BY_CLIENT')) {
+        try {
+          // Try HTTPS if HTTP, or vice versa
+          const altUrl = url.startsWith('https://') 
+            ? url.replace('https://', 'http://')
+            : url.replace('http://', 'https://');
+          
+          console.log(`  🔄 Trying alternate URL: ${altUrl}`);
+          await page.goto(altUrl, strategy);
+          return true;
+        } catch (altError) {
+          console.error(`  ❌ Alternate URL also failed`);
+        }
+      }
+      
       if (i === retries - 1) {
         return false;
       }
+      
       // Wait before retry
-      await new Promise((resolve) => setTimeout(resolve, 2000 * (i + 1)));
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)));
     }
   }
   return false;
