@@ -18,15 +18,12 @@ export async function getBrowser(): Promise<Browser> {
         const chromium = await import("@sparticuz/chromium");
         const puppeteerCore = await import("puppeteer-core");
         
-        // Set Chromium to not zip on Vercel
-        if (process.env.VERCEL) {
-          chromium.default.setGraphicsMode(false);
-        }
-        
         browser = await puppeteerCore.default.launch({
-          args: chromium.default.args,
+          args: [...chromium.default.args, '--single-process'],
           defaultViewport: chromium.default.defaultViewport,
-          executablePath: await chromium.default.executablePath(),
+          executablePath: await chromium.default.executablePath({
+            path: '/tmp/chromium',
+          }),
           headless: chromium.default.headless,
         });
       } catch (error: any) {
