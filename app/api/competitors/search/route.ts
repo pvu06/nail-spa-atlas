@@ -149,8 +149,13 @@ export async function POST(request: NextRequest) {
         } else {
           console.log(`⚠️  No websites to scrape`);
         }
-      } catch (scrapingError) {
+      } catch (scrapingError: any) {
         console.error("❌ SMART scraping failed:", scrapingError);
+        console.error("❌ Error details:", {
+          message: scrapingError?.message,
+          stack: scrapingError?.stack,
+          name: scrapingError?.name
+        });
         // Continue without prices
       }
       
