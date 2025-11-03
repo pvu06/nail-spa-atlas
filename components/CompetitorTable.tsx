@@ -111,13 +111,13 @@ export function CompetitorTable({ competitors }: CompetitorTableProps) {
                       <Badge variant="secondary">{competitor.priceRange}</Badge>
                     </TableCell>
                     <TableCell className="font-medium">
-                      ${competitor.samplePrices.gel}
+                      {competitor.samplePrices.gel ? `$${competitor.samplePrices.gel}` : '-'}
                     </TableCell>
                     <TableCell className="font-medium">
-                      ${competitor.samplePrices.pedicure}
+                      {competitor.samplePrices.pedicure ? `$${competitor.samplePrices.pedicure}` : '-'}
                     </TableCell>
                     <TableCell className="font-medium">
-                      ${competitor.samplePrices.acrylic}
+                      {competitor.samplePrices.acrylic ? `$${competitor.samplePrices.acrylic}` : '-'}
                     </TableCell>
                     <TableCell className="text-sm">
                       {competitor.staffBand}
