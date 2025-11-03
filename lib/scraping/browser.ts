@@ -1,30 +1,49 @@
-import puppeteer, { Browser, Page } from "puppeteer";
+import { Browser, Page } from "puppeteer";
 // @ts-ignore - no types available for user-agents
 import UserAgent from "user-agents";
 
 let browser: Browser | null = null;
+
+// Detect if running on Vercel
+const isVercel = process.env.VERCEL === '1';
 
 /**
  * Get or create Puppeteer browser instance
  */
 export async function getBrowser(): Promise<Browser> {
   if (!browser || !browser.isConnected()) {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu",
-        "--window-size=1920x1080",
-        // Disable blocking features that cause ERR_BLOCKED_BY_CLIENT
-        "--disable-features=IsolateOrigins,site-per-process",
-        "--disable-blink-features=AutomationControlled",
-        "--disable-web-security",
-        "--disable-features=site-per-process",
-      ],
-    });
+    if (isVercel) {
+      // Use Vercel-compatible setup
+      const chromium = await import("@sparticuz/chromium");
+      const puppeteerCore = await import("puppeteer-core");
+      
+      browser = await puppeteerCore.default.launch({
+        args: chromium.default.args,
+        defaultViewport: chromium.default.defaultViewport,
+        executablePath: await chromium.default.executablePath(),
+        headless: chromium.default.headless,
+      });
+    } else {
+      // Use regular Puppeteer for local development
+      const puppeteer = await import("puppeteer");
+      
+      browser = await puppeteer.default.launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--disable-gpu",
+          "--window-size=1920x1080",
+          // Disable blocking features that cause ERR_BLOCKED_BY_CLIENT
+          "--disable-features=IsolateOrigins,site-per-process",
+          "--disable-blink-features=AutomationControlled",
+          "--disable-web-security",
+          "--disable-features=site-per-process",
+        ],
+      });
+    }
   }
   return browser;
 }
