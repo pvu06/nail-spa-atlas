@@ -3,6 +3,7 @@
     "app/api/competitors/search/route.ts": {
       "maxDuration": 300
     }
-  }
+  },
+  "regions": ["iad1"]
 }
 

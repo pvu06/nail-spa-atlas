@@ -14,15 +14,25 @@ export async function getBrowser(): Promise<Browser> {
   if (!browser || !browser.isConnected()) {
     if (isVercel) {
       // Use Vercel-compatible setup
-      const chromium = await import("@sparticuz/chromium");
-      const puppeteerCore = await import("puppeteer-core");
-      
-      browser = await puppeteerCore.default.launch({
-        args: chromium.default.args,
-        defaultViewport: chromium.default.defaultViewport,
-        executablePath: await chromium.default.executablePath(),
-        headless: chromium.default.headless,
-      });
+      try {
+        const chromium = await import("@sparticuz/chromium");
+        const puppeteerCore = await import("puppeteer-core");
+        
+        // Set Chromium to not zip on Vercel
+        if (process.env.VERCEL) {
+          chromium.default.setGraphicsMode(false);
+        }
+        
+        browser = await puppeteerCore.default.launch({
+          args: chromium.default.args,
+          defaultViewport: chromium.default.defaultViewport,
+          executablePath: await chromium.default.executablePath(),
+          headless: chromium.default.headless,
+        });
+      } catch (error: any) {
+        console.error("❌ Failed to load Chromium on Vercel:", error.message);
+        throw new Error("Browser scraping not available on Vercel");
+      }
     } else {
       // Use regular Puppeteer for local development
       const puppeteer = await import("puppeteer");
